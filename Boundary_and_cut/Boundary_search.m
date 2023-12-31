@@ -16,7 +16,7 @@ function [Q, z_s] = Boundary_search(b0, T, v, gamma, beta, M)
     
     Obj = -(lambda' * b0 + mu' * v);
 
-    options = sdpsettings('solver', 'gurobi','verbose', 0);
+    options = sdpsettings('solver', 'gurobi','verbose',0);
     %options = sdpsettings('verbose', 0, 'solver', 'gurobi', 'gurobi.DisplayInterval', 0);
     sol = optimize(Cons, Obj, options);
 

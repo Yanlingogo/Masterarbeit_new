@@ -165,10 +165,10 @@ for i = 1:size(T,1)
 end
 
 % 检查每个点是否满足所有不等式
-inside = all((A * [X(:), Y(:)]' <= b)');
+% inside = all((A * [X(:), Y(:)]' <= b)');
 
 % 绘制可行区域
-fill(X(inside), Y(inside), 'g', 'FaceAlpha', 0.3);
+% fill(X(inside), Y(inside), 'g', 'FaceAlpha', 0.3);
 
 % 设置坐标轴标签和标题
 xlabel('x');
