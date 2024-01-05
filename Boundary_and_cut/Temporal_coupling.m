@@ -142,35 +142,7 @@ for i = 1:T
          -Qgmin(id_gen_slack)];
     % parameter for M-method
     M = 80;
-    % set a point within the real polytope
-    z_0 = [0.2;0];
-    % tolerance
-    tol = 1e-3;
-    % find the boundary for each time set
-    K = 1; K_2 = 0;
-    while K ~= 0
-        [K, z_s] = Boundary_search(b_u, D0, v, B, A_de, M);
-        disp(['Exceeding the constraints: K = ', num2str(K)]);
-        lambda_l = 0;
-        lambda_u = 1;
-        lambda = 0.5*(lambda_l + lambda_u);
-        if K <= 5e-6
-            break;
-        else
-            while ~(lambda_u - lambda_l <= tol && K_2 > 0)
-                lambda = 0.5*(lambda_l + lambda_u);
-                z_B = lambda*z_s + (1-lambda)*z_0;
-                [K_2, h_s] = Boundart_check(b_u, A_de, B, z_B);
-                if K_2 == 0
-                    lambda_l = lambda;
-                else 
-                    lambda_u = lambda;
-                end
-            end
-            D0 = [D0;-(h_s'*B)];
-            v = [v;-(h_s'*b_u)];
-        end
-    end
+    [D0,v] = feas_cut(B,A_de,b_u,D0,v,M);
     D_all{i} = D0;
     v_all{i} = v;
 end

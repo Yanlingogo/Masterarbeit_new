@@ -22,7 +22,7 @@ function [A_u, b_u] = E_UCI(A, b)
         sol = optimize(Cons, Obj, options);
 
         beta_value = value(beta);
-        idx = vertcat(idx, find(beta_value == 0));
+        idx = vertcat(idx, find(beta_value <= 1e-5));
         idx = sort(idx);
 
         if sum(beta_value) == Numb0
