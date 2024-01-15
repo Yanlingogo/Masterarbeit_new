@@ -100,7 +100,7 @@ Q_half = 0.5*(2*sum(Qd)-sum(Qgmin(id_gen_nslack))-sum(Qgmax(id_gen_nslack)));
 z_0 = [0.2;0];
 % tolerance
 tol = 1e-3;
-
+[T,v] = feas_cut(gamma, beta, b0, T, v, M);
 % res = 20;
 % z_p = linspace(-0.2,0.8,res);
 % z_q = linspace(-2,1.5,res);
@@ -113,30 +113,30 @@ tol = 1e-3;
 % end
 
 
-K = 1; K_2 = 0;
-while K ~= 0
-    [K, z_s] = Boundary_search(b0, T, v, gamma, beta, M);
-
-    lambda_l = 0;
-    lambda_u = 1;
-    lambda = 0.5*(lambda_l + lambda_u);
-    if K <= 1e-16
-        break;
-    else
-        while ~(lambda_u - lambda_l <= tol && K_2 > 0)
-            lambda = 0.5*(lambda_l + lambda_u);
-            z_B = lambda*z_s + (1-lambda)*z_0;
-            [K_2, h_s] = Boundart_check(b0, beta, gamma, z_B);
-            if K_2 == 0
-                lambda_l = lambda;
-            else 
-                lambda_u = lambda;
-            end
-        end
-        T = [T;-(h_s'*gamma)];
-        v = [v;-(h_s'*b0)];
-    end
-end
+% K = 1; K_2 = 0;
+% while K ~= 0
+%     [K, z_s] = Boundary_search(b0, T, v, gamma, beta, M);
+% 
+%     lambda_l = 0;
+%     lambda_u = 1;
+%     lambda = 0.5*(lambda_l + lambda_u);
+%     if K <= 1e-16
+%         break;
+%     else
+%         while ~(lambda_u - lambda_l <= tol && K_2 > 0)
+%             lambda = 0.5*(lambda_l + lambda_u);
+%             z_B = lambda*z_s + (1-lambda)*z_0;
+%             [K_2, h_s] = Boundart_check(b0, beta, gamma, z_B);
+%             if K_2 == 0
+%                 lambda_l = lambda;
+%             else 
+%                 lambda_u = lambda;
+%             end
+%         end
+%         T = [T;-(h_s'*gamma)];
+%         v = [v;-(h_s'*b0)];
+%     end
+% end
 
 % 设置 x 轴和 y 轴的范围
 x = linspace(-0.2, 0.7, 400);

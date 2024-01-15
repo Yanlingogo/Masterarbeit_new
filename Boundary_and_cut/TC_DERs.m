@@ -1,6 +1,6 @@
 %% Only consider 6 time periods
 
-% Data_preprocessing;
+Data_preprocessing;
 %%Index setting
 % bus idx
 [PQ, PV, REF, NONE, BUS_I, BUS_TYPE, PD, QD, GS, BS, BUS_AREA, VM, ...
@@ -65,7 +65,7 @@ Cg_nslack      = Cg(:,id_gen_nslack);
 Cg_slack       = Cg(:,id_gen_slack);
 
 % parameters for EES
-id_ess = [16;26];
+id_ess = [];
 Ness = numel(id_ess);
 P_ess_max = [0.05;0.03];
 P_ess_min = [-0.05;-0.03];
@@ -190,7 +190,8 @@ A_eq = [zeros(Nbus*T) Cg_comb zeros(Nbus*T, Ngen*T) -C_comb2 zeros(Nbus*T, Nbran
         zeros(Nbus*T, (Nbus+Ngen)*T) -Cg_comb zeros(T*Nbus, Nbranch*T) C_comb2 zeros(T*Nbus, (Nwind+Npv+2*Ness)*T);];
 
 % Integrate all matrices
-A = vertcat(A_v,A_gen_ns,A_ramp,A_inj,A_ess,A_DERs,A_eq);
+%A = vertcat(A_v,A_gen_ns,A_ramp,A_inj,A_ess,A_DERs,A_eq);
+A = vertcat(A_v,A_gen_ns,A_ramp,A_inj,A_DERs,A_eq);
 %% bounds on constraints
 tol_cons = 1e-6;
 % lower and upper bounds on U
@@ -230,11 +231,12 @@ Qd = Qd_max(:);
 b0_pf = vertcat(Pd+tol_cons,-Pd+tol_cons,Qd+tol_cons,-Qd+tol_cons);
 
 % Integrate all vectors
-b0 = vertcat(b0_U,b0_P,b0_Q,b0_ramp,b0_inj,b0_ESS,b0_wind,b0_pv,b0_pf);
+%b0 = vertcat(b0_U,b0_P,b0_Q,b0_ramp,b0_inj,b0_ESS,b0_wind,b0_pv,b0_pf);
+b0 = vertcat(b0_U,b0_P,b0_Q,b0_ramp,b0_inj,b0_wind,b0_pv,b0_pf);
 %% condense model with umbrella constraints
-%[A_u, b_u] = E_UCI(A, b0);
-A_u = A;
-b_u = b0;
+[A_u, b_u] = E_UCI(A, b0);
+% A_u = A;
+% b_u = b0;
 %% find the feasible region
 D_all = cell(1,T);
 v_all = cell(1,T);
@@ -249,21 +251,42 @@ for i = 1:T
      -1 0;
       0 1;
       0 -1;];
-    Ps_max = sum(Pd(Nbus*(T-1)+1:Nbus*T));
-    Qs_max = sum(Qd(Nbus*(T-1)+1:Nbus*T));
-    Ps_min = sum(Pd(Nbus*(T-1)+1:Nbus*T))-sum(Pgmax(id_gen_nslack))-sum(WT_power(:,i))-sum(PV_power(:,i));
-    Qs_min = sum(Qd(Nbus*(T-1)+1:Nbus*T))-sum(Qgmax(id_gen_nslack));
+    Ps_max = sum(Pd(Nbus*(i-1)+1:Nbus*i));
+    Qs_max = sum(Qd(Nbus*(i-1)+1:Nbus*i));
+    Ps_min = sum(Pd(Nbus*(i-1)+1:Nbus*i))-sum(Pgmax(id_gen_nslack))-sum(WT_power(:,i))-sum(PV_power(:,i));
+    Qs_min = sum(Qd(Nbus*(i-1)+1:Nbus*i))-sum(Qgmax(id_gen_nslack));
     v = [Ps_max*2;
          -Ps_min*2;
          Qs_max*2;
          -Qs_min*2];
     % parameter for M-method
-    M = 80;
+    M = 100;
     [D0,v] = feas_cut(B,A_de,b_u,D0,v,M);
 
     D_all{i} = D0;
     v_all{i} = v;
 end
+%% find the feasible region for power of slack line
+i = 1:T;
+idx_slackP = 1+Ngen*(i-1);
+B_slackP = A_u(:,Nbus*T+idx_slackP);
+re_indicesP = setdiff(1:size(A_u,2), Nbus*T+idx_slackP);
+A_slackP = A_u(:, re_indicesP);
+D_P = [eye(T);
+       -eye(T)];% [upper bound; lower bound]
+v_P = [sum(Pd_max,1)'*1.5;
+       -(sum(Pd_max,1)-sum(Pgmax(id_gen_nslack))-sum(WT_power,1)-sum(PV_power,1))'*1.5];
+[D_P,v_P] = feas_cut(B_slackP,A_slackP,b_u,D_P,v_P,M);
+
+idx_slackQ = 1+Ngen*(T+i-1);
+B_slackQ = A_u(:,Nbus*T+idx_slackQ);
+re_indicesQ = setdiff(1:size(A_u,2), Nbus*T+idx_slackQ);
+A_slackQ = A_u(:, re_indicesQ);
+D_Q = [eye(T);
+       -eye(T)];% [upper bound; lower bound]
+v_Q = [sum(Qd_max,1)'*1.5;
+       -(sum(Qd_max,1)-sum(Qgmax(id_gen_nslack)))'*1.5];
+[D_Q,v_Q] = feas_cut(B_slackQ,A_slackQ,b_u,D_Q,v_Q,M);
 %% get the intersection of all linear equations
 intersections = cell(1,T);
 for i = 1:T
@@ -315,3 +338,4 @@ title(['Feasible region with temporal coupling (\gamma=', num2str(gamma), ')']);
 grid on;
 axis normal;
 rotate3d on; % 允许使用鼠标旋转视图
+

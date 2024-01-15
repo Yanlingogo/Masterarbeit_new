@@ -120,9 +120,9 @@ b0_pf = vertcat(Pd+tol_cons,-Pd+tol_cons,Qd+tol_cons,-Qd+tol_cons);
 
 b0 = vertcat(b0_U_u,b0_U_l,b0_P_u,b0_P_l,b0_Q_u,b0_Q_l,b0_ramp,b0_inj,b0_pf);
 %% condense model with umbrella constraints
-%[A_u, b_u] = E_UCI(A, b0);
-A_u = A;
-b_u = b0;
+[A_u, b_u] = E_UCI(A, b0);
+% A_u = A;
+% b_u = b0;
 %% find the feasible region
 D_all = cell(1,T);
 v_all = cell(1,T);
