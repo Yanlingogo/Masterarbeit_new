@@ -1,6 +1,6 @@
 clc
 clear
-close all
+
 %%Index setting
 % bus idx
 [PQ, PV, REF, NONE, BUS_I, BUS_TYPE, PD, QD, GS, BS, BUS_AREA, VM, ...
@@ -16,7 +16,7 @@ QC2MIN, QC2MAX, RAMP_AGC, RAMP_10, RAMP_30, RAMP_Q, APF] = idx_gen;
 % cost idx
 [PW_LINEAR, POLYNOMIAL, MODEL, STARTUP, SHUTDOWN, NCOST, COST] = idx_cost;
 %mpc = loadcase('case9');
-
+tic
 mpc = loadcase('case33_modified');
 % mpc.gen(:,PMAX) = inf;
 % mpc.gen(:,PMIN) = -inf;
@@ -50,10 +50,10 @@ vmax        = mpc.bus(:,VMAX);
 vmin        = mpc.bus(:,VMIN);
 Phimax      = mpc.branch(:,ANGMAX)/180*pi;
 Phimin      = mpc.branch(:,ANGMIN)/180*pi;
-Pgmin       = mpc.gen(:,PMIN)/baseMVA; %Pgmin(id_gen_slack) = -inf;  
-Qgmin       = mpc.gen(:,QMIN)/baseMVA; %Qgmin(id_gen_slack) = -inf;
-Pgmax       = mpc.gen(:,PMAX)/baseMVA; %Pgmax(id_gen_slack) = inf;
-Qgmax       = mpc.gen(:,QMAX)/baseMVA; %Qgmax(id_gen_slack) = inf;
+Pgmin       = mpc.gen(:,PMIN)/baseMVA; Pgmin(id_gen_slack) = -10;  
+Qgmin       = mpc.gen(:,QMIN)/baseMVA; Qgmin(id_gen_slack) = -10;
+Pgmax       = mpc.gen(:,PMAX)/baseMVA; Pgmax(id_gen_slack) = 10;
+Qgmax       = mpc.gen(:,QMAX)/baseMVA; Qgmax(id_gen_slack) = 10;
 Fmax        = mpc.branch(:,RATE_A)/baseMVA;
 
 
@@ -133,13 +133,13 @@ id_cline = find(mpc.branch(:, 1) == id_slack | mpc.branch(:, 2) == id_slack); % 
 % obj_q = @(x)create_coupling_branch_limit_q(x(entries_pf{1}),...
 %      x(entries_pf{2}),id_slack,connected_buses,id_cline, Gf, Bf, Gt, Bt);
 
-% obj_p = @(x) x(entries_pf{3}(id_gen_slack));
-% obj_q = @(x) x(entries_pf{4}(id_gen_slack));
+obj_p = @(x) x(entries_pf{3}(id_gen_slack));
+obj_q = @(x) x(entries_pf{4}(id_gen_slack));
 
-obj_p = @(x)create_obj_p(x(entries_pf{1}),x(entries_pf{2}),...
-    x(entries_pf{3}),x(entries_pf{4}),Gbus,Bbus,Pd,Qd,Cg,id_slack);
-obj_q = @(x)create_obj_q(x(entries_pf{1}),x(entries_pf{2}),...
-    x(entries_pf{3}),x(entries_pf{4}),Gbus,Bbus,Pd,Qd,Cg,id_slack);
+% obj_p = @(x)create_obj_p(x(entries_pf{1}),x(entries_pf{2}),...
+%     x(entries_pf{3}),x(entries_pf{4}),Gbus,Bbus,Pd,Qd,Cg,id_slack);
+% obj_q = @(x)create_obj_q(x(entries_pf{1}),x(entries_pf{2}),...
+%     x(entries_pf{3}),x(entries_pf{4}),Gbus,Bbus,Pd,Qd,Cg,id_slack);
 
 %lbg = vertcat(vmin, Pgmin, Qgmin, -inf*ones(Nlimit+2*Ngen-2*Nslack,1), zeros(Npf+1,1));
 lbg = vertcat(Phimin, -inf*ones(Nlimit,1), zeros(Npf+1,1),1);
@@ -188,7 +188,7 @@ for c1 = -1:1
     end
 end
 %% discretization at x-axis
-resolution = 5;
+resolution = 30;
 s_pmin = min(Points(:,1));
 s_pmax = max(Points(:,1));
 s_p_step = linspace(s_pmin,s_pmax,resolution+2);
@@ -252,6 +252,7 @@ hold on;
 Points_tot = [Points;[s_p_step';s_p_step'],[gridding_p(:,1);gridding_p(:,2)];...
     [gridding_q(:,1);gridding_q(:,2)],[s_q_step';s_q_step']];
 centroid = mean(Points_tot, 1);
+centroid = [0,0];
 angles = atan2(Points_tot(:,2) - centroid(2), Points_tot(:,1) - centroid(1));
 [~, order] = sort(angles);
 sortedPoints = Points_tot(order, :);
@@ -260,5 +261,5 @@ xlabel('P/p.u.');   % X 轴标签
 ylabel('Q/p.u.');   % Y 轴标签
 title('Feasible Region of Slack Bus(exact)'); % 图像标题
 grid on;            % 显示网格
-
+toc
 %% cost plot

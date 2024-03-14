@@ -1,6 +1,6 @@
 % 生成随机的三维点
 num_points = 30; % 你可以改变点的数量
-points = rand(num_points, 3) + [zeros(num_points, 1), zeros(num_points, 1), 0.5*ones(num_points,1)]; % 确保z值至少为2，保持在x-y平面上方
+points = rand(num_points, 3) + [zeros(num_points, 1), zeros(num_points, 1), 0.3*ones(num_points,1)]; % 确保z值至少为2，保持在x-y平面上方
 
 % 计算点集的凸包
 [K, v] = convhull(points);
@@ -10,9 +10,8 @@ xyPoints = points(:, 1:2);
 [K2, v2] = convhull(xyPoints);
 
 % 创建一个新的图形窗口
-fig = figure;
-set(fig, 'Units', 'inches');
-fig.Position = [0, 0, 8, 6];
+fig1=figure; box on; grid on; hold all; set(fig1, 'Position', [100, 100, 650, 550])
+
 
 % 定义颜色
 deepBlue = [0, 0, 0.5]; % 深蓝色轮廓线
@@ -23,8 +22,7 @@ lightGreen = [0.7, 1, 0.7]; % 浅绿色填充
 Green = [0.1, 0.4, 0.1];
 
 % 第一个子图：三维凸包及其投影（包括虚线）
-subplot(1, 2, 1);
-set(gca, 'Position', [0.07 0.1 0.4 0.8]);
+
 trisurf(K, points(:,1), points(:,2), points(:,3), 'FaceColor', lightBlue, 'EdgeColor', deepBlue);
 axis equal;
 hold on;
@@ -36,9 +34,9 @@ end
 xlabel('X-axis', 'FontName', 'Times New Roman','FontSize', 14);
 ylabel('Y-axis', 'FontName', 'Times New Roman','FontSize', 14);
 zlabel('Z-axis', 'FontName', 'Times New Roman','FontSize', 14);
-title('3D Convex Hull with Projection', 'FontName', 'Times New Roman','FontSize', 14);
+% title('3D Convex Hull with Projection', 'FontName', 'Times New Roman','FontSize', 14);
 grid on;
-view(140, 20);
+view(140, 30);
 
 % 设置坐标轴的刻度间隔为0.2，但不超过坐标轴的最大值
 set(gca, 'XTick', 0:0.2:1, 'YTick', 0:0.2:1, 'ZTick', 0:0.2:2);
@@ -51,14 +49,13 @@ ylim([min(points(:,2))-axisPadding, max(points(:,2))+axisPadding]);
 zlim([0, max(points(:,3))+axisPadding]);
 
 % 第二个子图：只有三维凸包，没有虚线
-subplot(1, 2, 2);
-set(gca, 'Position', [0.55 0.1 0.4 0.8]);
-trisurf(K, points(:,1), points(:,2), points(:,3), 'FaceColor', lightGreen, 'EdgeColor', Green);
+fig2=figure; box on; grid on; hold all; set(fig2, 'Position', [100, 100, 650, 550])
+trisurf(K, points(:,1), points(:,2), points(:,3), 'FaceColor', veryLightRed, 'EdgeColor', lightRed);
 axis equal;
 xlabel('X-axis', 'FontName', 'Times New Roman','FontSize', 14);
 ylabel('Y-axis', 'FontName', 'Times New Roman','FontSize', 14);
 zlabel('Z-axis', 'FontName', 'Times New Roman','FontSize', 14);
-title('Top view of a 3D convex hull', 'FontName', 'Times New Roman','FontSize', 14);
+% title('Top view of a 3D convex hull', 'FontName', 'Times New Roman','FontSize', 14);
 grid on;
 view(180, 90); % 设置为俯视图
 
@@ -72,6 +69,4 @@ ylim([min(points(:,2))-axisPadding, max(points(:,2))+axisPadding]);
 zlim([0, max(points(:,3))+axisPadding]);
 
 % 调整视角以更好地观察
-
-set(fig, 'PaperPositionMode', 'auto');
 % exportgraphics(fig, 'output.pdf', 'ContentType', 'vector', 'BackgroundColor', 'none');

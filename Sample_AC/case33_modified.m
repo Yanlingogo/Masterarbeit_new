@@ -57,9 +57,9 @@ mpc.bus = [ %% (Pd and Qd are specified in kW & kVAr here, converted to MW & MVA
 %% generator data
 %	bus	Pg	Qg	Qmax	Qmin	Vg	mBase	status	Pmax	Pmin	Pc1	Pc2	Qc1min	Qc1max	Qc2min	Qc2max	ramp_agc	ramp_10	ramp_30	ramp_q	apf
 mpc.gen = [
-	1	0	0	10	-10	1	100	1	5	-5	0	0	0	0	0	0	0	0	0	0	0;
-	6	0	0	10	-10	1	100	1	2	-2	0	0	0	0	0	0	0	0	0	0	0;
-	8	0	0	10	-10	1	100	1	2	-2	0	0	0	0	0	0	0	0	0	0	0;
+	1	0	0	20	-20	1	100	1   16	-15	0	0	0	0	0	0	0	0	0	0	0;
+	6	0	0	10	-10	1	100	1	9	-9	0	0	0	0	0	0	0	0	0	0	0;
+	8	0	0	15	-15	1	100	1	8	-8	0	0	0	0	0	0	0	0	0	0	0;
 ];
 
 %% branch data
@@ -97,11 +97,6 @@ mpc.branch = [  %% (r and x specified in ohms here, converted to p.u. below)
 	30	31	0.9744	0.9630	0	0	0	0	0	0	1	-360	360;
 	31	32	0.3105	0.3619	0	0	0	0	0	0	1	-360	360;
 	32	33	0.3410	0.5302	0	0	0	0	0	0	1	-360	360;
-	21	8	2.0000	2.0000	0	0	0	0	0	0	0	-360	360;
-	9	15	2.0000	2.0000	0	0	0	0	0	0	0	-360	360;
-	12	22	2.0000	2.0000	0	0	0	0	0	0	0	-360	360;
-	18	33	0.5000	0.5000	0	0	0	0	0	0	0	-360	360;
-	25	29	0.5000	0.5000	0	0	0	0	0	0	0	-360	360;
 ];
 
 %%-----  OPF Data  -----%%

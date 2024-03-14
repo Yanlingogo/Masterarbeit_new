@@ -3,6 +3,7 @@ clear
 close all
 %%Index setting
 % bus idx
+tic
 [PQ, PV, REF, NONE, BUS_I, BUS_TYPE, PD, QD, GS, BS, BUS_AREA, VM, ...
 VA, BASE_KV, ZONE, VMAX, VMIN, LAM_P, LAM_Q, MU_VMAX, MU_VMIN] = idx_bus;
 % branch idx
@@ -46,10 +47,10 @@ Umax        = mpc.bus(:,VMAX).^2;
 Umin        = mpc.bus(:,VMIN).^2;
 Phimax      = mpc.branch(:,ANGMAX)/180*pi;
 Phimin      = mpc.branch(:,ANGMIN)/180*pi;
-Pgmin       = mpc.gen(:,PMIN)/baseMVA; Pgmin(id_gen_slack) = -inf;  
-Qgmin       = mpc.gen(:,QMIN)/baseMVA; Qgmin(id_gen_slack) = -inf;
-Pgmax       = mpc.gen(:,PMAX)/baseMVA; Pgmax(id_gen_slack) = inf;
-Qgmax       = mpc.gen(:,QMAX)/baseMVA; Qgmax(id_gen_slack) = inf;
+Pgmin       = mpc.gen(:,PMIN)/baseMVA; Pgmin(id_gen_slack) = -10;  
+Qgmin       = mpc.gen(:,QMIN)/baseMVA; Qgmin(id_gen_slack) = -10;
+Pgmax       = mpc.gen(:,PMAX)/baseMVA; Pgmax(id_gen_slack) = 10;
+Qgmax       = mpc.gen(:,QMAX)/baseMVA; Qgmax(id_gen_slack) = 10;
 Fmax        = mpc.branch(:,RATE_A)/baseMVA;
 
 
@@ -60,6 +61,9 @@ Cg          = sparse(id_gen,1:Ngen,ones(Ngen,1),Nbus,Ngen);
 % branch info
 branch_r   = mpc.branch(:,BR_R);
 branch_x   = mpc.branch(:,BR_X);
+R   = diag(mpc.branch(:,BR_R));
+X   = diag(mpc.branch(:,BR_X));
+Z2  = R.^2 + X.^2; 
 % 
 [Ybus, Yf, Yt] = makeYbus(mpc);
 Gbus           = real(Ybus);
@@ -73,6 +77,17 @@ to_bus         = mpc.branch(:, T_BUS);
 Cf             = sparse(1:Nbranch,from_bus,ones(Nbranch,1),Nbranch,Nbus);
 Ct             = sparse(1:Nbranch,to_bus,ones(Nbranch,1),Nbranch,Nbus);
 C              = Cf - Ct;
+
+B              = (Cf + Ct)';
+A              = [zeros(Nbranch,1) eye(Nbranch)]*B - eye(Nbranch);
+D              = (eye(Nbranch) - A)\eye(size(A));
+DR             = (eye(Nbranch) - A)\(A*R);
+DX             = (eye(Nbranch) - A)\(A*X);
+DX_p = max(DX,zeros(size(DX))).*(DX>0);
+DX_m = min(DX,zeros(size(DX))).*(DX<0);
+
+Mp = D'*R*D;
+Mq = D'*X*D;
 %% set the variables 
 import casadi.*
 U          = SX.sym('U',Nbus,1);
@@ -97,7 +112,8 @@ x0      = vertcat(U0, Pij0, Qij0, Pg0, Qg0);
 %% LinDistFlow
 
 % voltage constraints
-volt_eq    = C*U -2*(branch_r .* Pij + branch_x .* Qij);
+% volt_eq    = C*U -2*(branch_r .* Pij + branch_x .* Qij);
+volt_eq = U(2:end) - (2*Mq*(Cg(2:end,2:end)*Qg(2:end)-Qd(2:end))+2*Mp*(Cg(2:end,2:end)*Pg(2:end)-Pd(2:end)))-1;
 % power balance
 pf_p_eq    = Cg*Pg - Pd - C'*Pij;
 pf_q_eq    = Cg*Qg - Qd - C'*Qij;
@@ -223,3 +239,4 @@ title('Feasible Region of Slack Bus(LinDistFlow)'); % 图像标题
 grid on;            % 显示网格
 
 %% cost plot
+toc

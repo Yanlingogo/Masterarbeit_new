@@ -1,0 +1,10 @@
+cvxrs: 约束，变量在一侧
+cvxrs2: g_cos,g_sin 变量，常量均在一侧
+cvxrs_gurobi1: yalmip 写的， 约束参考casadi
+cvxrs_gurobi2: yalmip, g_cos,g_sin约束参考julia
+
+注意julia中的runopf与Matpower 不同，迭代结束后只传出bus的电压辐角和发电机无功
+
+opf_initialization 的角度结果为弧度制
+runpf_cvxr(mpc) 传入函数的mpc内的功率均为真实值，不是标幺值，角度为角度制，不是弧度制 
+                传出的结果为真实值和角度值

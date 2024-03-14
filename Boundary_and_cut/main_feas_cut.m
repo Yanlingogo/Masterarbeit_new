@@ -1,6 +1,6 @@
 clc
 clear
-close all
+tic
 %%Index setting
 % bus idx
 [PQ, PV, REF, NONE, BUS_I, BUS_TYPE, PD, QD, GS, BS, BUS_AREA, VM, ...
@@ -23,10 +23,10 @@ baseMVA     = mpc.baseMVA;
 baseKV      = mpc.bus(1,BASE_KV);
 Umax        = mpc.bus(:,VMAX).^2;                                            
 Umin        = mpc.bus(:,VMIN).^2;
-Pgmin       = mpc.gen(:,PMIN)/baseMVA;  
-Qgmin       = mpc.gen(:,QMIN)/baseMVA; 
-Pgmax       = mpc.gen(:,PMAX)/baseMVA; 
-Qgmax       = mpc.gen(:,QMAX)/baseMVA; 
+Pgmin       = mpc.gen(:,PMIN)/baseMVA; %Pgmin(1) = -5;  
+Qgmin       = mpc.gen(:,QMIN)/baseMVA; %Qgmin(1) = -5;
+Pgmax       = mpc.gen(:,PMAX)/baseMVA; %Pgmax(1) = 5;
+Qgmax       = mpc.gen(:,QMAX)/baseMVA; %Qgmax(1) = 5;
 Pd          = mpc.bus(:,PD)/baseMVA;
 Qd          = mpc.bus(:,QD)/baseMVA;
 
@@ -87,82 +87,71 @@ T = [ 1 0;
      -1 0;
       0 1;
       0 -1;];
-v = [Pgmax(id_gen_slack);
-     -Pgmin(id_gen_slack);
-     Qgmax(id_gen_slack);
-     -Qgmin(id_gen_slack)];
+% v = [Pgmax(id_gen_slack);
+%      -Pgmin(id_gen_slack);
+%      Qgmax(id_gen_slack);
+%      -Qgmin(id_gen_slack)];
+
+v = [2.5;
+     2;
+     3;
+     3];
 
 %M = 10*sum(Pd);
 M = 80;
-P_half = 0.5*(2*sum(Pd)-sum(Pgmin(id_gen_nslack))-sum(Pgmax(id_gen_nslack)));
-Q_half = 0.5*(2*sum(Qd)-sum(Qgmin(id_gen_nslack))-sum(Qgmax(id_gen_nslack)));
+
 %z_0 = [P_half;Q_half];
 z_0 = [0.2;0];
 % tolerance
 tol = 1e-3;
 [T,v] = feas_cut(gamma, beta, b0, T, v, M);
-% res = 20;
-% z_p = linspace(-0.2,0.8,res);
-% z_q = linspace(-2,1.5,res);
-% mesh = zeros(res);
-% for i = 1:res
-%     for j =1:res
-%         z_B = [z_p(i);z_q(j)];
-%         [mesh(i,j),~] = Boundart_check(b0, beta, gamma, z_B);
-%     end
-% end
-
-
-% K = 1; K_2 = 0;
-% while K ~= 0
-%     [K, z_s] = Boundary_search(b0, T, v, gamma, beta, M);
-% 
-%     lambda_l = 0;
-%     lambda_u = 1;
-%     lambda = 0.5*(lambda_l + lambda_u);
-%     if K <= 1e-16
-%         break;
-%     else
-%         while ~(lambda_u - lambda_l <= tol && K_2 > 0)
-%             lambda = 0.5*(lambda_l + lambda_u);
-%             z_B = lambda*z_s + (1-lambda)*z_0;
-%             [K_2, h_s] = Boundart_check(b0, beta, gamma, z_B);
-%             if K_2 == 0
-%                 lambda_l = lambda;
-%             else 
-%                 lambda_u = lambda;
-%             end
-%         end
-%         T = [T;-(h_s'*gamma)];
-%         v = [v;-(h_s'*b0)];
-%     end
-% end
-
-% 设置 x 轴和 y 轴的范围
-x = linspace(-0.2, 0.7, 400);
-y = linspace(-1.2, 1.2, 400);
+toc
+% [T,v] = redun_2(T,v);
+[valid_intersections] = intersection(T,v);
+x = linspace(-5, 5, 400);
+y = linspace(-5, 5, 400);
 [X, Y] = meshgrid(x, y);
 
 % 初始化绘图
-fig=figure; box on; hold all; set(fig, 'Position', [100, 100, 850, 650]);
+fig=figure; box on; grid on; hold all; set(fig, 'Position', [100, 100, 650, 550])
+
 
 % 设置坐标轴范围和网格线间隔
-xlim([-0.2, 0.7]);
-ylim([-1.2, 1.2]);
-xticks(-0.2:0.1:0.7);
-yticks(-1.2:0.5:1.2);
+% xlim([-2, 2]);
+% ylim([-2.2, 2.2]);
+% xticks(-2:0.5:2);
+% yticks(-2:0.5:2);
+
+xlim([-2, 2.5]);
+ylim([-3, 3]);
+xticks(-2:0.5:2.5);
+yticks(-3:0.5:3);
+set(gca, 'FontSize', 14,'FontName', 'Times New Roman');
 grid on;
 
 % 绘制每个不等式定义的线
+lightorange = [250, 188, 113]/255;
+orange = [252, 128, 2]/255;
 for i = 1:size(T,1)
-    if T(i,1) == 0
-        line(xlim, [v(i)/T(i,2) v(i)/T(i,2)], 'Color', 'r');
-    elseif T(i,2) == 0
-        line([v(i)/T(i,1) v(i)/T(i,1)], ylim, 'Color', 'r');
+    if ismember(v(i), [1.5,1.6,10])
+        continue;
+    elseif T(i,1) == 0 
+        line(xlim, [v(i)/T(i,2) v(i)/T(i,2)], 'Color', orange,'LineWidth', 1.5);
+    elseif T(i,2) == 0 
+        line([v(i)/T(i,1) v(i)/T(i,1)], ylim, 'Color', orange,'LineWidth', 1.5);
     else
-        plot(x, (v(i) - T(i,1)*x)/T(i,2), 'r');
+        plot(x, (v(i) - T(i,1)*x)/T(i,2), 'Color',orange,'LineWidth', 1.5);
     end
 end
+% deepgreen = [114, 156, 97]/255;
+% deepyellow = [226, 201, 93]/255;
+% yline(2, 'Color', deepgreen,'LineWidth',2.5)
+% yline(-2, 'Color', deepgreen,'LineWidth',2.5,'LineStyle','--')
+% xline(1.6, 'Color', deepyellow,'LineWidth',2.5)
+% xline(-1.5, 'Color', deepyellow,'LineWidth',2.5,'LineStyle','--')
+
+
+fill(valid_intersections(:,1), valid_intersections(:,2), lightorange, 'FaceAlpha',0.7, 'EdgeColor', 'none');
 
 % 检查每个点是否满足所有不等式
 % inside = all((A * [X(:), Y(:)]' <= b)');
@@ -171,7 +160,9 @@ end
 % fill(X(inside), Y(inside), 'g', 'FaceAlpha', 0.3);
 
 % 设置坐标轴标签和标题
-xlabel('x');
-ylabel('y');
-title('Linear Inequality Constraints');
-hold off;
+x_label = xlabel('$p^{\mathrm{pcc}}$/(p.u.)'); % 修正了大括号
+set(x_label, 'Interpreter', 'latex', 'FontSize', 20, 'FontName', 'Times New Roman');
+
+y_label = ylabel('$q^{\mathrm{pcc}}$/(p.u.)'); % 修正了大括号
+set(y_label, 'Interpreter', 'latex', 'FontSize', 20, 'FontName', 'Times New Roman');
+% exportgraphics(gca, 'pbmethod.pdf', 'ContentType', 'vector');

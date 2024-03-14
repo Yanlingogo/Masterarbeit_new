@@ -1,5 +1,6 @@
 function [D,d] = feas_cut(A, B, b, D, d, M)
     f = 1;
+    violation = [];
     while ~(f<=1e-5)
         yalmip('clear')
         
@@ -25,6 +26,7 @@ function [D,d] = feas_cut(A, B, b, D, d, M)
 
         f = -value(Obj);
         disp(['Exceeding the constraints: f = ', num2str(f)]);
+        violation  = [violation,f];
         value_z = value(z);
         % value_v = value(v);
         % value_alpha = value(alpha);

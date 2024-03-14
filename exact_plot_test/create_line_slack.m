@@ -10,6 +10,7 @@ function [line_slack] = create_line_slack(v, ang, slack_line, Gf, Bf, Gt, Bt, Fm
     pji = W(to_bus) .* (Gt*W + Bt*U) + U(to_bus) .* (Gt*U - Bt*W);
     qji = W(to_bus) .* (Gt*U - Bt*W) - U(to_bus) .* (Gt*W + Bt*U);
     % detect active line limit - 0 as no line limit
+    Fmax(Fmax == 0) = 1e3;
     idx_limit = find(Fmax);
     Sij = pij(idx_limit).^2 + qij(idx_limit).^2;
     Sji = pji(idx_limit).^2 + qji(idx_limit).^2;

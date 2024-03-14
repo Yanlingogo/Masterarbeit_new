@@ -56,7 +56,7 @@ QC2MIN, QC2MAX, RAMP_AGC, RAMP_10, RAMP_30, RAMP_Q, APF] = idx_gen;
 
     %% lower & upper bounds
     lbx         = vertcat(-inf(2*Nbus+2*Ngen+5,1),-inf);     
-    ubx         =  inf(2*Nbus+2*Ngen+6,1);
+    ubx         = inf(2*Nbus+2*Ngen+6,1);
     %% initial state x0
     vang0       = mpc.bus(:,VA)/180*pi;
     vmag0       = mpc.bus(:,VM);
