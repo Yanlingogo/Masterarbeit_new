@@ -19,14 +19,6 @@ QC2MIN, QC2MAX, RAMP_AGC, RAMP_10, RAMP_30, RAMP_Q, APF] = idx_gen;
 
 mpc = ext2int(loadcase('case33_modified'));
 mpc = ext2int(mpc);
-% mpc.gen(:,PMAX) = inf;
-% mpc.gen(:,PMIN) = -inf;
-
-% mpc,branch(:,RATE_A) = 
-% add Generators in mpc
-% Info_gen = [6	0	0	100	-100	1	1	1	100	10	0	0	0	0	0	0	0	0	0	0	0;
-% 	        16	0	0	100	-100	1	1	1	100	10	0	0	0	0	0	0	0	0	0	0	0;];
-% mpc.gen = vertcat(mpc.gen,Info_gen);
 
 %% parameters 
 id_bus      = mpc.bus(:,BUS_I);
@@ -169,7 +161,7 @@ for c1 = -1:1
     end
 end
 %% discretization at x-axis
-resolution = 50;
+resolution = 30;
 s_pmin = min(Points(:,1));
 s_pmax = max(Points(:,1));
 s_p_step = linspace(s_pmin,s_pmax,resolution+2);
@@ -241,33 +233,71 @@ title('Feasible Region of Slack Bus(LinDistFlow)'); % 图像标题
 grid on;            % 显示网格
 toc;
 %% compensation for sampled points
-e_st = zeros(Nbus,1);
-e_st(1) = 1;
+% e_st   = sparse(ref_idx,1,1,Nbus,1);
+% 
+% A = [e_st' zeros(1,2*Nbus);
+%      C -2*R -2*X zeros(Nbranch,2);
+%      zeros(Nbus) -C' zeros(Nbus,Nbranch) e_st zeros(Nbus,1);
+%      zeros(Nbus,Nbus+Nbranch) -C' zeros(Nbus,1) e_st];
+% B = [zeros(Nbus,2*(Ngen-1));
+%      Cg_ns zeros(Nbus,Ngen-1);
+%      zeros(Nbus,Ngen-1), Cg_ns];
+% 
+% b = [1;zeros(Nbranch,1);Pd;Qd];
+% 
+% u = (-sortedPoints + [sum(Pd) sum(Qd)])/(Ngen-1);
+% u = [u(:,1), u(:,1), u(:,2), u(:,2)];
+% x = A\(b - B*u');
+% U_comp = x(1:Nbus,:);
+% Pij_comp = x(Nbus+1:Nbus+Nbranch,:);
+% Qij_comp = x(Nbus+Nbranch+1:Nbus+2*Nbranch,:);
+% l_comp = (Pij_comp.^2 + Qij_comp.^2)./U_comp(from_bus,:);
+% PQ_loss = [(branch_r'*l_comp)' (branch_x'*l_comp)'];
+% 
+% comp_pcc = sortedPoints + PQ_loss;
+% plot(comp_pcc(:,1),comp_pcc(:,2),'gx');
+%% Compensation with z_0
+% runpf with pg = 0, qg = 0
+e_st   = sparse(id_slack,1,1,Nbus,1);
+mpc = runpf(mpc);
+U_0 = mpc.bus(:,8).^2;
+p_pcc0 = mpc.gen(id_gen_slack,PG)/mpc.baseMVA;
+q_pcc0 = mpc.gen(id_gen_slack,QG)/mpc.baseMVA;
+s_0 = [p_pcc0,q_pcc0];
+P = mpc.branch(:,14)/mpc.baseMVA;
+Q = mpc.branch(:,15)/mpc.baseMVA;
+L = (P.^2+Q.^2)./U_0(from_bus);
+z_0 = [U_0; P; Q; p_pcc0; q_pcc0; L];
+% participation factor for generators
+P_p = Pgmax(gen_nslack)/sum(Pgmax(gen_nslack));
+Q_p = Qgmax(gen_nslack)/sum(Qgmax(gen_nslack));
+H =blkdiag(P_p,Q_p);
+% jacobian
+D    = full([1, zeros(1,Nbus*2+Nbranch);
+        C, -2*diag(branch_r),-2*diag(branch_x), zeros(Nbranch,2);
+        zeros(Nbus,Nbus),C',zeros(Nbus,Nbranch),-e_st,zeros(Nbus,1);
+        zeros(Nbus,Nbus+Nbranch),C',zeros(Nbus,1),-e_st]);
+RR  = sparse(diag(branch_r));
+XX  = sparse(diag(branch_x));
+PP  = sparse(diag(P));
+QQ  = sparse(diag(Q));
+Ga  = sparse(diag(L.^(-1)));
 
-A = [e_st' zeros(1,2*Nbus);
-     C -2*R -2*X zeros(Nbranch,2);
-     zeros(Nbus) -C' zeros(Nbus,Nbranch) e_st zeros(Nbus,1);
-     zeros(Nbus,Nbus+Nbranch) -C' zeros(Nbus,1) e_st];
-B = [zeros(Nbus,2*(Ngen-1));
-     Cg_ns zeros(Nbus,Ngen-1);
-     zeros(Nbus,Ngen-1), Cg_ns];
+E   = [sparse(1,Nbranch);RR^2+XX^2;Ct' *RR;Ct'*XX];
+F   = [Cf, - 2*PP*Ga, -2*QQ*Ga,sparse(Nbranch,2)];
+G   = (PP^2+QQ^2) * Ga^2;
 
-b = [1;zeros(Nbranch,1);Pd;Qd];
+jac_z = [D E;F G]; 
+jac_u = [zeros(Nbus,2*(Ngen-1));
+         -Cg_ns zeros(Nbus,Ngen-1);
+         zeros(Nbus,Ngen-1) -Cg_ns;
+         zeros(Nbranch,2*(Ngen-1))];
+% calculate the losses
 
-u = (-sortedPoints + [sum(Pd) sum(Qd)])/(Ngen-1);
-u = [u(:,1), u(:,1), u(:,2), u(:,2)];
-x = A\(b - B*u');
-U_comp = x(1:Nbus,:);
-Pij_comp = x(Nbus+1:Nbus+Nbranch,:);
-Qij_comp = x(Nbus+Nbranch+1:Nbus+2*Nbranch,:);
-l_comp = (Pij_comp.^2 + Qij_comp.^2)./U_comp(from_bus,:);
-PQ_loss = [(branch_r'*l_comp)' (branch_x'*l_comp)'];
+delta_s = sortedPoints - s_0;
+z_comp = z_0 + jac_z\jac_u*H*delta_s';
+L_comp = z_comp(3*Nbus+1:end,:);
+PQ_loss = ([branch_r';branch_x']*L_comp)';
 
-comp_pcc = sortedPoints + PQ_loss;
+comp_pcc = sortedPoints + abs(PQ_loss);
 plot(comp_pcc(:,1),comp_pcc(:,2),'gx');
-%% Compensation with l_0
-u = zeros(1,2*(Ngen-1));
-x_mean = A\(b - B*u');
-U_mean = x(1:Nbus,:);
-Pij_mean = x(Nbus+1:Nbus+Nbranch,:);
-Qij_mean = x(Nbus+Nbranch+1:Nbus+2*Nbranch,:);

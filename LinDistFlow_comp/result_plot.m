@@ -69,10 +69,10 @@ set(h2, 'facealpha', 0.9, 'EdgeColor', violett,'LineWidth',2);
 load("linear.mat");
 lightorange = [250, 188, 113]/255;
 orange = [255, 99, 0]/255;
-h3 = fill(valid_intersections(:,1), valid_intersections(:,2), lightorange, 'FaceAlpha',0.7);
+h3 = fill(sortedPoints(:,1), sortedPoints(:,2), lightorange, 'FaceAlpha',0.7);
 set(h3, 'facealpha', 0.6, 'EdgeColor', orange,'LineWidth', 2);
 %% overlaid the results of compensation
-load("comp_pcc.mat");
+load("comp_pcc_2.mat");
 lightblue = [3, 170, 162]/255;
 blue = [52, 161, 202]/255;
 h3 = fill(comp_pcc(:,1), comp_pcc(:,2), lightblue, 'FaceAlpha',0.7);
