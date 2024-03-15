@@ -40,10 +40,10 @@ Umax        = mpc.bus(:,VMAX).^2;
 Umin        = mpc.bus(:,VMIN).^2;
 Phimax      = mpc.branch(:,ANGMAX)/180*pi;
 Phimin      = mpc.branch(:,ANGMIN)/180*pi;
-Pgmin       = mpc.gen(:,PMIN)/baseMVA; %Pgmin(id_gen_slack) = -10;  
-Qgmin       = mpc.gen(:,QMIN)/baseMVA; %Qgmin(id_gen_slack) = -10;
-Pgmax       = mpc.gen(:,PMAX)/baseMVA; %Pgmax(id_gen_slack) = 10;
-Qgmax       = mpc.gen(:,QMAX)/baseMVA; %Qgmax(id_gen_slack) = 10;
+Pgmin       = mpc.gen(:,PMIN)/baseMVA; Pgmin(id_gen_slack) = -10;  
+Qgmin       = mpc.gen(:,QMIN)/baseMVA; Qgmin(id_gen_slack) = -10;
+Pgmax       = mpc.gen(:,PMAX)/baseMVA; Pgmax(id_gen_slack) = 10;
+Qgmax       = mpc.gen(:,QMAX)/baseMVA; Qgmax(id_gen_slack) = 10;
 Fmax        = mpc.branch(:,RATE_A)/baseMVA;
 
 
@@ -233,6 +233,128 @@ title('Feasible Region of Slack Bus(LinDistFlow)'); % 图像标题
 grid on;            % 显示网格
 toc;
 %% compensation for sampled points: first method
+% e_st   = sparse(id_slack,1,1,Nbus,1);
+% 
+% A = [e_st' zeros(1,2*Nbus);
+%      C -2*R -2*X zeros(Nbranch,2);
+%      zeros(Nbus) -C' zeros(Nbus,Nbranch) e_st zeros(Nbus,1);
+%      zeros(Nbus,Nbus+Nbranch) -C' zeros(Nbus,1) e_st];
+% B = [zeros(Nbus,2*(Ngen-1));
+%      Cg_ns zeros(Nbus,Ngen-1);
+%      zeros(Nbus,Ngen-1), Cg_ns];
+% 
+% b = [1;zeros(Nbranch,1);Pd;Qd];
+% 
+% P_p = Pgmax(gen_nslack)/sum(Pgmax(gen_nslack));
+% Q_p = Qgmax(gen_nslack)/sum(Qgmax(gen_nslack));
+% H =blkdiag(P_p,Q_p); % participation factor
+% 
+% u = (-sortedPoints + [sum(Pd) sum(Qd)])*H';
+% x = A\(b - B*u');
+% U_comp = x(1:Nbus,:);
+% Pij_comp = x(Nbus+1:Nbus+Nbranch,:);
+% Qij_comp = x(Nbus+Nbranch+1:Nbus+2*Nbranch,:);
+% l_comp = (Pij_comp.^2 + Qij_comp.^2)./U_comp(from_bus,:);
+% PQ_loss = [(branch_r'*l_comp)' (branch_x'*l_comp)'];
+% 
+% comp_pcc = sortedPoints + PQ_loss;
+% plot(comp_pcc(:,1),comp_pcc(:,2),'gx');
+%% Compensation with z_0, second
+
+% mpc = runpf(mpc); %pg = 0, qg = 0
+% U_0 = mpc.bus(:,8).^2;
+% p_pcc0 = mpc.gen(id_gen_slack,PG)/mpc.baseMVA;
+% q_pcc0 = mpc.gen(id_gen_slack,QG)/mpc.baseMVA;
+% s_0 = [p_pcc0,q_pcc0];
+% P = mpc.branch(:,14)/mpc.baseMVA;
+% Q = mpc.branch(:,15)/mpc.baseMVA;
+% L = (P.^2+Q.^2)./U_0(from_bus);
+% z_0 = [U_0; P; Q; p_pcc0; q_pcc0; L];
+% 
+% e_st   = sparse(id_slack,1,1,Nbus,1);
+% P_p = Pgmax(gen_nslack)/sum(Pgmax(gen_nslack));
+% Q_p = Qgmax(gen_nslack)/sum(Qgmax(gen_nslack));
+% H =blkdiag(P_p,Q_p); 
+% 
+% D    = full([1, zeros(1,Nbus*2+Nbranch);
+%         C, -2*diag(branch_r),-2*diag(branch_x), zeros(Nbranch,2);
+%         zeros(Nbus,Nbus),C',zeros(Nbus,Nbranch),-e_st,zeros(Nbus,1);
+%         zeros(Nbus,Nbus+Nbranch),C',zeros(Nbus,1),-e_st]);
+% RR  = sparse(diag(branch_r));
+% XX  = sparse(diag(branch_x));
+% PP  = sparse(diag(P));
+% QQ  = sparse(diag(Q));
+% Ga  = sparse(diag(L.^(-1)));
+% 
+% E   = [sparse(1,Nbranch);RR^2+XX^2;Ct' *RR;Ct'*XX];
+% F   = [Cf, - 2*PP*Ga, -2*QQ*Ga,sparse(Nbranch,2)];
+% G   = (PP^2+QQ^2) * Ga^2;
+% 
+% jac_z = [D E;F G]; % jacobian 
+% jac_u = [zeros(Nbus,2*(Ngen-1)); 
+%          -Cg_ns zeros(Nbus,Ngen-1);
+%          zeros(Nbus,Ngen-1) -Cg_ns;
+%          zeros(Nbranch,2*(Ngen-1))];
+% 
+% delta_s = sortedPoints - s_0;
+% z_comp = z_0 + jac_z\jac_u*H*delta_s';
+% U_comp = z_comp(1:Nbus,:);
+% Pij_comp = z_comp(Nbus+1:Nbus+Nbranch,:);
+% Qij_comp = z_comp(Nbus+Nbranch+1:Nbus+2*Nbranch,:);
+% L_comp = (Pij_comp.^2 + Qij_comp.^2)./U_comp(from_bus,:);
+% PQ_loss = ([branch_r';branch_x']*L_comp)';
+% 
+% comp_pcc = sortedPoints + PQ_loss;
+% plot(comp_pcc(:,1),comp_pcc(:,2),'gx');
+%% The third method
+% mpc = runpf(mpc);
+% U_0 = mpc.bus(:,8).^2;
+% p_pcc0 = mpc.gen(id_gen_slack,PG)/mpc.baseMVA;
+% q_pcc0 = mpc.gen(id_gen_slack,QG)/mpc.baseMVA;
+% s_0 = [p_pcc0,q_pcc0];
+% P = mpc.branch(:,14)/mpc.baseMVA;
+% Q = mpc.branch(:,15)/mpc.baseMVA;
+% L0 = (P.^2+Q.^2)./U_0(from_bus);
+% z_0 = [U_0; P; Q; p_pcc0; q_pcc0; L0];
+% 
+% e_st   = sparse(id_slack,1,1,Nbus,1);
+% 
+% A = [e_st' zeros(1,2*Nbus);
+%      C -2*R -2*X zeros(Nbranch,2);
+%      zeros(Nbus) -C' zeros(Nbus,Nbranch) e_st zeros(Nbus,1);
+%      zeros(Nbus,Nbus+Nbranch) -C' zeros(Nbus,1) e_st];
+% B = [zeros(Nbus,2*(Ngen-1));
+%      Cg_ns zeros(Nbus,Ngen-1);
+%      zeros(Nbus,Ngen-1), Cg_ns];
+% 
+% b = [1;-Z2*L0;Pd+Ct'*R*L0;Qd+Ct'*X*L0];
+% 
+% P_p = Pgmax(gen_nslack)/sum(Pgmax(gen_nslack));
+% Q_p = Qgmax(gen_nslack)/sum(Qgmax(gen_nslack));
+% H =blkdiag(P_p,Q_p);
+% 
+% u = (-sortedPoints + [sum(Pd) sum(Qd)])*H';
+% 
+% x = A\(b - B*u');
+% U_comp = x(1:Nbus,:);
+% Pij_comp = x(Nbus+1:Nbus+Nbranch,:);
+% Qij_comp = x(Nbus+Nbranch+1:Nbus+2*Nbranch,:);
+% l_comp = (Pij_comp.^2 + Qij_comp.^2)./U_comp(from_bus,:);
+% PQ_loss = [(branch_r'*l_comp)' (branch_x'*l_comp)'];
+% 
+% comp_pcc = sortedPoints + PQ_loss;
+% plot(comp_pcc(:,1),comp_pcc(:,2),'gx');
+%% compensation using hessian
+mpc = runpf(mpc);
+U_0 = mpc.bus(:,8).^2;
+p_pcc0 = mpc.gen(id_gen_slack,PG)/mpc.baseMVA;
+q_pcc0 = mpc.gen(id_gen_slack,QG)/mpc.baseMVA;
+s_0 = [p_pcc0,q_pcc0];
+Pij_0 = mpc.branch(:,14)/mpc.baseMVA;
+Qij_0 = mpc.branch(:,15)/mpc.baseMVA;
+L_0 = (Pij_0.^2+Qij_0.^2)./U_0(from_bus);
+theta_0 = [diag(Pij_0); diag(Qij_0); diag(U_0(2:end))];
+
 e_st   = sparse(id_slack,1,1,Nbus,1);
 
 A = [e_st' zeros(1,2*Nbus);
@@ -247,99 +369,27 @@ b = [1;zeros(Nbranch,1);Pd;Qd];
 
 P_p = Pgmax(gen_nslack)/sum(Pgmax(gen_nslack));
 Q_p = Qgmax(gen_nslack)/sum(Qgmax(gen_nslack));
-H =blkdiag(P_p,Q_p);
+H =blkdiag(P_p,Q_p); % participation factor
 
 u = (-sortedPoints + [sum(Pd) sum(Qd)])*H';
 x = A\(b - B*u');
-U_comp = x(1:Nbus,:);
-Pij_comp = x(Nbus+1:Nbus+Nbranch,:);
-Qij_comp = x(Nbus+Nbranch+1:Nbus+2*Nbranch,:);
-l_comp = (Pij_comp.^2 + Qij_comp.^2)./U_comp(from_bus,:);
-PQ_loss = [(branch_r'*l_comp)' (branch_x'*l_comp)'];
 
-comp_pcc = sortedPoints + PQ_loss;
-plot(comp_pcc(:,1),comp_pcc(:,2),'gx');
-%% Compensation with z_0, second
+J = [diag(2*Pij_0./U_0(from_bus)); diag(2*Qij_0./U_0(from_bus)); diag(- (Pij_0.^2+Qij_0.^2)./U_0(from_bus).^2)];
+Hes = [diag(2./U_0(from_bus)) zeros(Nbus-1) diag((-2*Pij_0)./(U_0(from_bus).^2));
+       zeros(Nbus-1) diag(2./U_0(from_bus)) diag((-2*Qij_0)./(U_0(from_bus).^2));
+       diag((-2*Pij_0)./(U_0(from_bus).^2)) diag((-2*Qij_0)./(U_0(from_bus).^2)) diag(2*(Pij_0.^2+Qij_0.^2)./(U_0(from_bus).^3))];
 
-mpc = runpf(mpc);
-U_0 = mpc.bus(:,8).^2;
-p_pcc0 = mpc.gen(id_gen_slack,PG)/mpc.baseMVA;
-q_pcc0 = mpc.gen(id_gen_slack,QG)/mpc.baseMVA;
-s_0 = [p_pcc0,q_pcc0];
-P = mpc.branch(:,14)/mpc.baseMVA;
-Q = mpc.branch(:,15)/mpc.baseMVA;
-L = (P.^2+Q.^2)./U_0(from_bus);
-z_0 = [U_0; P; Q; p_pcc0; q_pcc0; L];
-
-e_st   = sparse(id_slack,1,1,Nbus,1);
-P_p = Pgmax(gen_nslack)/sum(Pgmax(gen_nslack));
-Q_p = Qgmax(gen_nslack)/sum(Qgmax(gen_nslack));
-H =blkdiag(P_p,Q_p);
-
-D    = full([1, zeros(1,Nbus*2+Nbranch);
-        C, -2*diag(branch_r),-2*diag(branch_x), zeros(Nbranch,2);
-        zeros(Nbus,Nbus),C',zeros(Nbus,Nbranch),-e_st,zeros(Nbus,1);
-        zeros(Nbus,Nbus+Nbranch),C',zeros(Nbus,1),-e_st]);
-RR  = sparse(diag(branch_r));
-XX  = sparse(diag(branch_x));
-PP  = sparse(diag(P));
-QQ  = sparse(diag(Q));
-Ga  = sparse(diag(L.^(-1)));
-
-E   = [sparse(1,Nbranch);RR^2+XX^2;Ct' *RR;Ct'*XX];
-F   = [Cf, - 2*PP*Ga, -2*QQ*Ga,sparse(Nbranch,2)];
-G   = (PP^2+QQ^2) * Ga^2;
-
-jac_z = [D E;F G]; 
-jac_u = [zeros(Nbus,2*(Ngen-1));
-         -Cg_ns zeros(Nbus,Ngen-1);
-         zeros(Nbus,Ngen-1) -Cg_ns;
-         zeros(Nbranch,2*(Ngen-1))];
-
-delta_s = sortedPoints - s_0;
-z_comp = z_0 + jac_z\jac_u*H*delta_s';
-U_comp = z_comp(1:Nbus,:);
-Pij_comp = z_comp(Nbus+1:Nbus+Nbranch,:);
-Qij_comp = z_comp(Nbus+Nbranch+1:Nbus+2*Nbranch,:);
-L_comp = (Pij_comp.^2 + Qij_comp.^2)./U_comp(from_bus,:);
-PQ_loss = ([branch_r';branch_x']*L_comp)';
-
-comp_pcc = sortedPoints + PQ_loss;
-plot(comp_pcc(:,1),comp_pcc(:,2),'gx');
-%% The third method
-mpc = runpf(mpc);
-U_0 = mpc.bus(:,8).^2;
-p_pcc0 = mpc.gen(id_gen_slack,PG)/mpc.baseMVA;
-q_pcc0 = mpc.gen(id_gen_slack,QG)/mpc.baseMVA;
-s_0 = [p_pcc0,q_pcc0];
-P = mpc.branch(:,14)/mpc.baseMVA;
-Q = mpc.branch(:,15)/mpc.baseMVA;
-L0 = (P.^2+Q.^2)./U_0(from_bus);
-z_0 = [U_0; P; Q; p_pcc0; q_pcc0; L0];
-
-e_st   = sparse(id_slack,1,1,Nbus,1);
-
-A = [e_st' zeros(1,2*Nbus);
-     C -2*R -2*X zeros(Nbranch,2);
-     zeros(Nbus) -C' zeros(Nbus,Nbranch) e_st zeros(Nbus,1);
-     zeros(Nbus,Nbus+Nbranch) -C' zeros(Nbus,1) e_st];
-B = [zeros(Nbus,2*(Ngen-1));
-     Cg_ns zeros(Nbus,Ngen-1);
-     zeros(Nbus,Ngen-1), Cg_ns];
-
-b = [1;-Z2*L0;Pd+Ct'*R*L0;Qd+Ct'*X*L0];
-
-P_p = Pgmax(gen_nslack)/sum(Pgmax(gen_nslack));
-Q_p = Qgmax(gen_nslack)/sum(Qgmax(gen_nslack));
-H =blkdiag(P_p,Q_p);
-
-u = (-sortedPoints + [sum(Pd) sum(Qd)])*H';
-
-x = A\(b - B*u');
-U_comp = x(1:Nbus,:);
-Pij_comp = x(Nbus+1:Nbus+Nbranch,:);
-Qij_comp = x(Nbus+Nbranch+1:Nbus+2*Nbranch,:);
-l_comp = (Pij_comp.^2 + Qij_comp.^2)./U_comp(from_bus,:);
+l_comp = zeros(Nbranch,size(sortedPoints,1));
+for i = 1: size(sortedPoints,1)
+    x_index = x(:,i);
+    U_comp = x_index(1:Nbus,:);
+    Pij_comp = x_index(Nbus+1:Nbus+Nbranch,:);
+    Qij_comp = x_index(Nbus+Nbranch+1:Nbus+2*Nbranch,:);
+    theta_comp = [diag(Pij_comp);diag(Qij_comp);diag(U_comp(2:end,:))];
+    
+    l_comp(:,i) = diag(diag(L_0) + J'*(theta_comp-theta_0) + 0.5*(theta_comp-theta_0)'*Hes*(theta_comp-theta_0));
+    % l_comp(:,i) = diag(diag(L_0) + J'*(theta_comp-theta_0));
+end
 PQ_loss = [(branch_r'*l_comp)' (branch_x'*l_comp)'];
 
 comp_pcc = sortedPoints + PQ_loss;

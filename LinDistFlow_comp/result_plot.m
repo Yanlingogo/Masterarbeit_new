@@ -9,14 +9,14 @@ y_lower = [-2 -2];
 y1 = [-2.2,2.2];
 x_lower = [-1.5 -1.5];
 x_upper = [1.6 1.6];
-plot(x1,y_upper, 'LineStyle','-','Color',deepgreen,'LineWidth',2);
-plot(x1,y_lower, 'LineStyle','--','Color',deepgreen,'LineWidth',2);
-plot(x_upper,y1, 'LineStyle','-','Color',deepyellow,'LineWidth',2);
-plot(x_lower,y1, 'LineStyle','--','Color',deepyellow,'LineWidth',2);
+% plot(x1,y_upper, 'LineStyle','-','Color',deepgreen,'LineWidth',2);
+% plot(x1,y_lower, 'LineStyle','--','Color',deepgreen,'LineWidth',2);
+% plot(x_upper,y1, 'LineStyle','-','Color',deepyellow,'LineWidth',2);
+% plot(x_lower,y1, 'LineStyle','--','Color',deepyellow,'LineWidth',2);
 
 %% bounds of combination
 % fill the range
-Points_exact = load('AC_conf.mat');
+Points_exact = load('AC_nb.mat');
 Points_exact = Points_exact.sortedPoints;
 lightzs = [181, 180, 214]/255;
 violett = [158, 49, 252]/255;
@@ -66,29 +66,29 @@ set(h2, 'facealpha', 0.9, 'EdgeColor', violett,'LineWidth',2);
 % plot(inter(:,1), inter(:,2), 'o', 'MarkerSize', 6, 'MarkerEdgeColor', 'none', 'MarkerFaceColor', deepviolet);
 
 %% overlaid the results of LinDistFlow
-load("linear.mat");
+load("linear_nb.mat");
 lightorange = [250, 188, 113]/255;
 orange = [255, 99, 0]/255;
 h3 = fill(sortedPoints(:,1), sortedPoints(:,2), lightorange, 'FaceAlpha',0.7);
 set(h3, 'facealpha', 0.6, 'EdgeColor', orange,'LineWidth', 2);
 %% overlaid the results of compensation
-load("comp_pcc1.mat");
+load("comp_pcc_nb.mat");
 lightblue = [3, 170, 162]/255;
 blue = [52, 161, 202]/255;
 h3 = fill(comp_pcc(:,1), comp_pcc(:,2), lightblue, 'FaceAlpha',0.7);
 set(h3, 'facealpha', 0.6, 'EdgeColor', blue,'LineWidth', 2);
 
-load("comp_pcc2.mat");
-green = [1, 202, 88]/255;
-dg = [49, 128, 19]/255;
-h4 = fill(comp_pcc(:,1), comp_pcc(:,2), green, 'FaceAlpha',0.7);
-set(h4, 'facealpha', 0.6, 'EdgeColor', dg,'LineWidth', 2);
-
-load("comp_pcc3.mat");
-lightred = [240, 128, 122]/255;
-red = [175, 36, 41]/255;
-h5 = fill(comp_pcc(:,1), comp_pcc(:,2), lightred, 'FaceAlpha',0.7);
-set(h5, 'facealpha', 0.6, 'EdgeColor', red,'LineWidth', 2);
+% load("comp_pcc2.mat");
+% green = [1, 202, 88]/255;
+% dg = [49, 128, 19]/255;
+% h4 = fill(comp_pcc(:,1), comp_pcc(:,2), green, 'FaceAlpha',0.7);
+% set(h4, 'facealpha', 0.6, 'EdgeColor', dg,'LineWidth', 2);
+% 
+% load("comp_pcc3.mat");
+% lightred = [240, 128, 122]/255;
+% red = [175, 36, 41]/255;
+% h5 = fill(comp_pcc(:,1), comp_pcc(:,2), lightred, 'FaceAlpha',0.7);
+% set(h5, 'facealpha', 0.6, 'EdgeColor', red,'LineWidth', 2);
 %% region considering uncertainty
 % load("uncertainty_rad.mat")
 % Points_un = sortedPoints;
