@@ -72,11 +72,23 @@ orange = [255, 99, 0]/255;
 h3 = fill(sortedPoints(:,1), sortedPoints(:,2), lightorange, 'FaceAlpha',0.7);
 set(h3, 'facealpha', 0.6, 'EdgeColor', orange,'LineWidth', 2);
 %% overlaid the results of compensation
-load("comp_pcc_2.mat");
+load("comp_pcc1.mat");
 lightblue = [3, 170, 162]/255;
 blue = [52, 161, 202]/255;
 h3 = fill(comp_pcc(:,1), comp_pcc(:,2), lightblue, 'FaceAlpha',0.7);
 set(h3, 'facealpha', 0.6, 'EdgeColor', blue,'LineWidth', 2);
+
+load("comp_pcc2.mat");
+green = [1, 202, 88]/255;
+dg = [49, 128, 19]/255;
+h4 = fill(comp_pcc(:,1), comp_pcc(:,2), green, 'FaceAlpha',0.7);
+set(h4, 'facealpha', 0.6, 'EdgeColor', dg,'LineWidth', 2);
+
+load("comp_pcc3.mat");
+lightred = [240, 128, 122]/255;
+red = [175, 36, 41]/255;
+h5 = fill(comp_pcc(:,1), comp_pcc(:,2), lightred, 'FaceAlpha',0.7);
+set(h5, 'facealpha', 0.6, 'EdgeColor', red,'LineWidth', 2);
 %% region considering uncertainty
 % load("uncertainty_rad.mat")
 % Points_un = sortedPoints;
