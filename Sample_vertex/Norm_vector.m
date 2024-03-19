@@ -15,7 +15,7 @@ function normals = Norm_vector(points)
         n = [d(2), -d(1)];
         
         % affine hull of facet
-        n = n / (n*points(i,:)');
+        n = n / abs((n*points(i,:)'));
         
         normals(i, :) = n;
     end
