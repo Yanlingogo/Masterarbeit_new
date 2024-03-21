@@ -1,7 +1,7 @@
 clc
-clear
 close all
-%%Index setting
+clear;
+%% index
 % bus idx
 tic
 [PQ, PV, REF, NONE, BUS_I, BUS_TYPE, PD, QD, GS, BS, BUS_AREA, VM, ...
@@ -16,11 +16,52 @@ MU_PMAX, MU_PMIN, MU_QMAX, MU_QMIN, PC1, PC2, QC1MIN, QC1MAX, ...
 QC2MIN, QC2MAX, RAMP_AGC, RAMP_10, RAMP_30, RAMP_Q, APF] = idx_gen;
 % cost idx
 [PW_LINEAR, POLYNOMIAL, MODEL, STARTUP, SHUTDOWN, NCOST, COST] = idx_cost;
+%% load the result
+load('vert_org_1.mat')
+lightorange = [250, 188, 113]/255;
+orange = [255, 99, 0]/255;
+h1 = fill(vert(:,1), vert(:,2), lightorange, 'FaceAlpha',0.7);
+set(h1, 'facealpha', 0.6, 'EdgeColor', orange,'LineWidth', 2);
+hold all
 
-mpc = ext2int(loadcase('case33_modified'));
-mpc = ext2int(mpc);
+load('AC_org_1.mat')
+lightzs = [181, 180, 214]/255;
+violett = [158, 49, 252]/255;
+h2 = fill(sortedPoints(:,1), sortedPoints(:,2), lightzs);
+set(h2, 'facealpha', 0.9, 'EdgeColor', violett,'LineWidth',2);
+%% compensation for sampled points: first method
+% e_st   = sparse(id_slack,1,1,Nbus,1);
+% 
+% A = [e_st' zeros(1,2*Nbus);
+%      C -2*R -2*X zeros(Nbranch,2);
+%      zeros(Nbus) -C' zeros(Nbus,Nbranch) e_st zeros(Nbus,1);
+%      zeros(Nbus,Nbus+Nbranch) -C' zeros(Nbus,1) e_st];
+% B = [zeros(Nbus,2*(Ngen-1));
+%      Cg_ns zeros(Nbus,Ngen-1);
+%      zeros(Nbus,Ngen-1), Cg_ns];
+% 
+% b = [1;zeros(Nbranch,1);Pd;Qd];
+% 
+% P_p = Pgmax(gen_nslack)/sum(Pgmax(gen_nslack));
+% Q_p = Qgmax(gen_nslack)/sum(Qgmax(gen_nslack));
+% H =blkdiag(P_p,Q_p); % participation factor
+% 
+% u = (-sortedPoints + [sum(Pd) sum(Qd)])*H';
+% x = A\(b - B*u');
+% U_comp = x(1:Nbus,:);
+% Pij_comp = x(Nbus+1:Nbus+Nbranch,:);
+% Qij_comp = x(Nbus+Nbranch+1:Nbus+2*Nbranch,:);
+% l_comp = (Pij_comp.^2 + Qij_comp.^2)./U_comp(from_bus,:);
+% PQ_loss = [(branch_r'*l_comp)' (branch_x'*l_comp)'];
+% 
+% comp_pcc = sortedPoints + PQ_loss;
+% plot(comp_pcc(:,1),comp_pcc(:,2),'gx');
+%% Compensation with z_0, second
+% grid the feasible region
+pcc_grid = grid_region(vert);
 
-%% parameters 
+mpc = loadcase('case33_org');
+% parameters
 id_bus      = mpc.bus(:,BUS_I);
 id_gen      = mpc.gen(:,GEN_BUS);
 Nbus        = size(mpc.bus,1);
@@ -45,7 +86,6 @@ Qgmin       = mpc.gen(:,QMIN)/baseMVA; Qgmin(id_gen_slack) = -10;
 Pgmax       = mpc.gen(:,PMAX)/baseMVA; Pgmax(id_gen_slack) = 10;
 Qgmax       = mpc.gen(:,QMAX)/baseMVA; Qgmax(id_gen_slack) = 10;
 Fmax        = mpc.branch(:,RATE_A)/baseMVA;
-
 
 Pd          = mpc.bus(:,PD)/baseMVA;   
 Qd          = mpc.bus(:,QD)/baseMVA;
@@ -84,186 +124,10 @@ Mp = IN'*R*IN;
 Mq = IN'*X*IN;
 
 H_l   = IN'*(2*(R*DR+X*DX) + Z2);
-%% set the variables 
-import casadi.*
-U          = SX.sym('U',Nbus,1);
-Pij        = SX.sym('Pij',Nbranch,1);
-Qij        = SX.sym('Qij',Nbranch,1);
-Pg         = SX.sym('Pg',Ngen,1);
-Qg         = SX.sym('Qg',Ngen,1);
-x          = vertcat(U, Pij, Qij, Pg, Qg);
-%% lower & upper bounds
-lbx         = [Umin;-inf(2*Nbranch,1);Pgmin;Qgmin];       
-ubx         = [Umax; inf(2*Nbranch,1);Pgmax;Qgmax];
-%% initial state x0
-
-U0          = mpc.bus(:,VM).^2;
-Pg0         = mpc.gen(:,PG)/baseMVA;
-Qg0         = mpc.gen(:,QG)/baseMVA;
-% Pij0        = max(mpc.branch(:,14), mpc.branch(:,16));
-% Qij0        = max(mpc.branch(:,15), mpc.branch(:,17));
-Pij0        = zeros(Nbranch,1);
-Qij0        = zeros(Nbranch,1);
-x0      = vertcat(U0, Pij0, Qij0, Pg0, Qg0);
-%% LinDistFlow
-
-% voltage constraints
-volt_eq    = C*U -2*(branch_r .* Pij + branch_x .* Qij);
-% volt_eq = U(2:end) - (2*Mq*(Cg(2:end,2:end)*Qg(2:end)-Qd(2:end))+2*Mp*(Cg(2:end,2:end)*Pg(2:end)-Pd(2:end)))-1;
-% power balance
-pf_p_eq    = Cg*Pg - Pd - C'*Pij;
-pf_q_eq    = Cg*Qg - Qd - C'*Qij;
-% ref bus
-ref_eq     = U(id_slack) - mpc.bus(id_slack, VM).^2;
-%% Problem formulation
-gfun = vertcat(pf_p_eq, pf_q_eq, volt_eq, ref_eq);
-lbg = zeros(2*Nbus+Nbranch+1,1);
-ubg = zeros(2*Nbus+Nbranch+1,1);
-% objective
-obj_p = Pg(id_gen_slack);
-obj_q = Qg(id_gen_slack);
-
-%% solver options
-
-% tolerance
-tol        = 1e-6;
-options.ipopt.tol             = tol;
-options.ipopt.constr_viol_tol = tol;
-options.ipopt.compl_inf_tol   = tol;
-options.ipopt.acceptable_tol  = tol;
-options.ipopt.acceptable_constr_viol_tol = tol;
-options.ipopt.print_level = 5;
-% options.ipopt.grad_f = fgrad;
-options.print_time        = 5;
-options.ipopt.max_iter    = 100;
-
-constraint = gfun;
-%% sampling points
-i = 1;
-Points = zeros(8,2);
-obj_values = zeros(8,1);
-for c1 = -1:1
-    for c2 = -1:1
-        if c1== 0 && c2 ==0
-            continue;
-        else
-            f_samp   = c1*obj_p+c2*obj_q; % p_{k,l}, q_{k,l} of PCC
-            objective = f_samp;
-            nlp = struct('x',x,'f',objective,'g',gfun);
-            S   = nlpsol('solver','ipopt', nlp,options);
-            sol = S('x0', x0,'lbg', lbg,'ubg', ubg,...
-                    'lbx', lbx, 'ubx', ubx);
-            xopt= full(sol.x);
-            obj_values(i)= full(sol.f);
-            obj_p_opt = xopt(Nbus+2*Nbranch+id_gen_slack);
-            obj_q_opt = xopt(Nbus+2*Nbranch+Ngen+id_gen_slack);
-            Points(i,:) = [obj_p_opt,obj_q_opt];
-            i = i+1;
-        end
-    end
-end
-%% discretization at x-axis
-resolution = 30;
-s_pmin = min(Points(:,1));
-s_pmax = max(Points(:,1));
-s_p_step = linspace(s_pmin,s_pmax,resolution+2);
-s_p_step = s_p_step(2:end-1);
-gridding_p= zeros(20,2); % store the solution under gridding
-eq_sp = obj_p;
-g_ext = vertcat(gfun,eq_sp);
-for c3 = [-1, 1]
-    for i = 1:resolution
-        lbg_ext = vertcat(lbg,s_p_step(i));
-        ubg_ext = vertcat(ubg,s_p_step(i));
-        f_grid = c3*obj_q; % q_{k,l} of PCC
-        constraint_grid = g_ext;
-        objective = f_grid;
-        nlp = struct('x',x,'f',objective,'g',constraint_grid);
-        S   = nlpsol('solver','ipopt', nlp,options);
-        sol = S('x0', x0,'lbg', lbg_ext,'ubg', ubg_ext,...
-                'lbx', lbx, 'ubx', ubx);
-        xopt2= full(sol.x);
-        obj_q_opt = xopt2(Nbus+2*Nbranch+Ngen+id_gen_slack);
-        if c3 == -1
-            gridding_p(i,1) = obj_q_opt;
-        else
-            gridding_p(i,2) = obj_q_opt;
-        end
-    end
-end
-%% discretization at y-axis
-s_qmin = min(Points(:,2));
-s_qmax = max(Points(:,2));
-s_q_step = linspace(s_qmin,s_qmax,resolution+2);
-s_q_step = s_q_step(2:end-1);
-gridding_q= zeros(20,2); % store the solution under gridding
-eq_sq = obj_q;
-g_ext = vertcat(gfun,eq_sq);
-for c3 = [-1, 1]
-    for i = 1:resolution
-        lbg_ext = vertcat(lbg,s_q_step(i));
-        ubg_ext = vertcat(ubg,s_q_step(i));
-        f_grid = c3*obj_p; % p_{k,l} of PCC
-        constraint_grid = g_ext;
-        objective = f_grid;
-        nlp = struct('x',x,'f',objective,'g',constraint_grid);
-        S   = nlpsol('solver','ipopt', nlp,options);
-        sol = S('x0', x0,'lbg', lbg_ext,'ubg', ubg_ext,...
-                'lbx', lbx, 'ubx', ubx);
-        xopt2= full(sol.x);
-        obj_p_opt = xopt2(Nbus+2*Nbranch+id_gen_slack);
-        if c3 == -1
-            gridding_q(i,1) = obj_p_opt;
-        else
-            gridding_q(i,2) = obj_p_opt;
-        end
-    end
-end
-%% output 画出的图像中，P/Q > 0 表示向DSO中注入功率
-plot(Points(:,1),Points(:,2),'rx');
-hold all;
-Points_tot = [Points;[s_p_step';s_p_step'],[gridding_p(:,1);gridding_p(:,2)];...
-    [gridding_q(:,1);gridding_q(:,2)],[s_q_step';s_q_step']];
-centroid = mean(Points_tot, 1);
-angles = atan2(Points_tot(:,2) - centroid(2), Points_tot(:,1) - centroid(1));
-[~, order] = sort(angles);
-sortedPoints = Points_tot(order, :);
-plot([sortedPoints(:,1); sortedPoints(1,1)], [sortedPoints(:,2); sortedPoints(1,2)], '-bo');
-xlabel('P/p.u.');   % X 轴标签
-ylabel('Q/p.u.');   % Y 轴标签
-title('Feasible Region of Slack Bus(LinDistFlow)'); % 图像标题
-grid on;            % 显示网格
-toc;
-%% compensation for sampled points: first method
-% e_st   = sparse(id_slack,1,1,Nbus,1);
-% 
-% A = [e_st' zeros(1,2*Nbus);
-%      C -2*R -2*X zeros(Nbranch,2);
-%      zeros(Nbus) -C' zeros(Nbus,Nbranch) e_st zeros(Nbus,1);
-%      zeros(Nbus,Nbus+Nbranch) -C' zeros(Nbus,1) e_st];
-% B = [zeros(Nbus,2*(Ngen-1));
-%      Cg_ns zeros(Nbus,Ngen-1);
-%      zeros(Nbus,Ngen-1), Cg_ns];
-% 
-% b = [1;zeros(Nbranch,1);Pd;Qd];
-% 
-% P_p = Pgmax(gen_nslack)/sum(Pgmax(gen_nslack));
-% Q_p = Qgmax(gen_nslack)/sum(Qgmax(gen_nslack));
-% H =blkdiag(P_p,Q_p); % participation factor
-% 
-% u = (-sortedPoints + [sum(Pd) sum(Qd)])*H';
-% x = A\(b - B*u');
-% U_comp = x(1:Nbus,:);
-% Pij_comp = x(Nbus+1:Nbus+Nbranch,:);
-% Qij_comp = x(Nbus+Nbranch+1:Nbus+2*Nbranch,:);
-% l_comp = (Pij_comp.^2 + Qij_comp.^2)./U_comp(from_bus,:);
-% PQ_loss = [(branch_r'*l_comp)' (branch_x'*l_comp)'];
-% 
-% comp_pcc = sortedPoints + PQ_loss;
-% plot(comp_pcc(:,1),comp_pcc(:,2),'gx');
-%% Compensation with z_0, second
 
 mpc = runpf(mpc); %pg = 0, qg = 0
+
+
 U_0 = mpc.bus(:,8).^2;
 p_pcc0 = mpc.gen(id_gen_slack,PG)/mpc.baseMVA;
 q_pcc0 = mpc.gen(id_gen_slack,QG)/mpc.baseMVA;
@@ -298,23 +162,28 @@ jac_u = [zeros(Nbus,2*(Ngen-1));
          zeros(Nbus,Ngen-1) -Cg_ns;
          zeros(Nbranch,2*(Ngen-1))];
 
-delta_s = sortedPoints - s_0;
+delta_s = pcc_grid - s_0;
 z_comp = z_0 + jac_z\jac_u*H*delta_s';
 U_comp = z_comp(1:Nbus,:);
 Pij_comp = z_comp(Nbus+1:Nbus+Nbranch,:);
 Qij_comp = z_comp(Nbus+Nbranch+1:Nbus+2*Nbranch,:);
 L_comp = (Pij_comp.^2 + Qij_comp.^2)./U_comp(from_bus,:);
 PQ_loss = ([branch_r';branch_x']*L_comp)';
+pcc_grid = pcc_grid + PQ_loss;
+scatter(pcc_grid(:,1),pcc_grid(:,2),5,'filled');
 
-comp_pcc = sortedPoints + PQ_loss;
+% validColumns = all(U_comp >= 0.81 & U_comp <= 1.21);
+% pcc_grid_1 = pcc_grid(validColumns,:);
+% scatter(pcc_grid_1(:,1),pcc_grid_1(:,2),5,'filled');
 
 p_inj = Cg_ns*P_p*delta_s(:,1)'-Pd; p_inj = p_inj(2:end,:);
 q_inj = Cg_ns*Q_p*delta_s(:,2)'-Qd; q_inj = q_inj(2:end,:);
 U_comp = U_comp(1,:) + Mp*p_inj + Mq*q_inj + H_l*L_comp;  
 
 validColumns = all(U_comp >= 0.81 & U_comp <= 1.21);
-comp_pcc = comp_pcc(validColumns,:);
-plot(comp_pcc(:,1),comp_pcc(:,2),'x');
+pcc_grid_2 = pcc_grid(validColumns,:);
+
+scatter(pcc_grid_2(:,1),pcc_grid_2(:,2),5,'filled');
 %% The third method
 % mpc = runpf(mpc);
 % U_0 = mpc.bus(:,8).^2;
