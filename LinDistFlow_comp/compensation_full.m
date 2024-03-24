@@ -4,7 +4,7 @@ clear;
 close all
 
 mpc = loadcase("case33_org.m");
-
+%%  solver
 % result of AC model
 AC_points = sample_AC(mpc);
 % result of LinDistFlow model

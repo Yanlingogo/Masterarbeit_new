@@ -299,7 +299,7 @@ jac_u = [zeros(Nbus,2*(Ngen-1));
          zeros(Nbranch,2*(Ngen-1))];
 
 delta_s = sortedPoints - s_0;
-z_comp = z_0 + jac_z\jac_u*H*delta_s';
+z_comp = z_0 - jac_z\jac_u*H*delta_s';
 U_comp = z_comp(1:Nbus,:);
 Pij_comp = z_comp(Nbus+1:Nbus+Nbranch,:);
 Qij_comp = z_comp(Nbus+Nbranch+1:Nbus+2*Nbranch,:);
