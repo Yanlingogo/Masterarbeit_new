@@ -176,7 +176,7 @@ function [sortedPoints] = sample_AC(mpc)
         end
     end
     %% discretization at x-axis
-    resolution = 50;
+    resolution = 30;
     s_pmin = min(Points(:,1));
     s_pmax = max(Points(:,1));
     s_p_step = linspace(s_pmin,s_pmax,resolution+2);

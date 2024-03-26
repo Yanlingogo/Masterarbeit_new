@@ -1,4 +1,4 @@
-function [pcc_grid,pcc_grid_2] = compensation(vert,mpc)
+function [pcc_grid_1,pcc_grid_2] = compensation(vert,mpc)
     [PQ, PV, REF, NONE, BUS_I, BUS_TYPE, PD, QD, GS, BS, BUS_AREA, VM, ...
     VA, BASE_KV, ZONE, VMAX, VMIN, LAM_P, LAM_Q, MU_VMAX, MU_VMIN] = idx_bus;
     % branch idx
@@ -123,11 +123,10 @@ function [pcc_grid,pcc_grid_2] = compensation(vert,mpc)
     Qij_comp = z_comp(Nbus+Nbranch+1:Nbus+2*Nbranch,:);
     L_comp = (Pij_comp.^2 + Qij_comp.^2)./U_comp(from_bus,:);
     PQ_loss = ([branch_r';branch_x']*L_comp)';
-    pcc_grid = pcc_grid + PQ_loss;
+    pcc_grid_1 = pcc_grid + PQ_loss;
     
     % validColumns = all(U_comp >= 0.81 & U_comp <= 1.21);
-    % pcc_grid_1 = pcc_grid(validColumns,:);
-    % scatter(pcc_grid_1(:,1),pcc_grid_1(:,2),5,'filled');
+    % pcc_grid_1 = pcc_grid_1(validColumns,:);
     
     p_inj = Cg_ns*P_p*delta_s(:,1)'-Pd; p_inj = p_inj(2:end,:);
     q_inj = Cg_ns*Q_p*delta_s(:,2)'-Qd; q_inj = q_inj(2:end,:);

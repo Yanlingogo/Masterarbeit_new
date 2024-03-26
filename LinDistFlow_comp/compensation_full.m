@@ -1,7 +1,6 @@
 clc
 clear;
 
-close all
 
 mpc = loadcase("case33_org.m");
 %%  solver
@@ -13,6 +12,7 @@ LDF_points = sample_LinDistFlow(mpc);
 [Comp_points, filtered_points] = compensation(LDF_points,mpc);
 %% visulization 
 % LinDistFlow
+figure;
 lightorange = [250, 188, 113]/255;
 orange = [255, 99, 0]/255;
 h1 = fill(LDF_points(:,1), LDF_points(:,2), lightorange, 'FaceAlpha',0.7);

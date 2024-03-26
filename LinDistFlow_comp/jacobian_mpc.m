@@ -119,5 +119,6 @@ function [parameters] = jacobian_mpc(mpc)
     parameters.jac_u = jac_u;
     parameters.branch_r = branch_r;
     parameters.branch_x = branch_x;
+    parameters.from_bus = from_bus;
 end
 

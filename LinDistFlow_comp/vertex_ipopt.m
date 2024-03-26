@@ -142,7 +142,7 @@ function [vert,dispatch] = vertex_ipopt(mpc)
         obj_p_opt = xopt(Nbus+2*Nbranch+id_gen_slack);
         obj_q_opt = xopt(Nbus+2*Nbranch+Ngen+id_gen_slack);
         vert(i,:) = [obj_p_opt, obj_q_opt];
-        dispatch{i} = [xopt(Nbus+2*Nbranch+id_gen_nslack), xopt(Nbus+2*Nbranch+Ngen+id_gen_nslack)];
+        dispatch{i} = [xopt(Nbus+2*Nbranch+id_gen_nslack); xopt(Nbus+2*Nbranch+Ngen+id_gen_nslack)];
     end
     vert = unique_coor(vert, 1e-4);
     % order the vertices
@@ -171,7 +171,7 @@ function [vert,dispatch] = vertex_ipopt(mpc)
             H(i) = Normals(i,:)*[obj_p_opt;obj_q_opt]-1;
             if  H(i) >= 1e-4 % no movement outwards
                 vert(end+1,:) = [obj_p_opt,obj_q_opt];
-                dispatch{end+1} = [xopt(Nbus+2*Nbranch+id_gen_nslack), xopt(Nbus+2*Nbranch+Ngen+id_gen_nslack)];
+                dispatch{end+1} = [xopt(Nbus+2*Nbranch+id_gen_nslack); xopt(Nbus+2*Nbranch+Ngen+id_gen_nslack)];
             end
         end
         % update the central point and normal vector
