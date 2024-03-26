@@ -109,8 +109,8 @@ obj_p = @(x) x(entries_pf{3}(id_gen_slack));
 obj_q = @(x) x(entries_pf{4}(id_gen_slack));
 
 
-lbg = vertcat(Phimin, -inf*ones(Nlimit,1), zeros(Npf+1,1),1);
-ubg = vertcat(Phimax, zeros(Npf+Nlimit+1,1),1);
+lbg = vertcat(Phimin, -inf*ones(Nlimit,1), zeros(Npf+1,1),vmin(id_slack));
+ubg = vertcat(Phimax, zeros(Npf+Nlimit+1,1),vmin(id_slack));
 % based on eqauation(19): but no line limits,
 %% solver options
 import casadi.*
@@ -123,7 +123,7 @@ options.ipopt.acceptable_tol  = tol;
 options.ipopt.acceptable_constr_viol_tol = tol;
 options.ipopt.print_level = 5;
 % options.ipopt.grad_f = fgrad;
-options.print_time        = 5;
+options.print_time        = 0;
 options.ipopt.max_iter    = 100;
 
 Nx         =  numel(x0);

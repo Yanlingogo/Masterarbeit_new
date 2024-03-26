@@ -5,11 +5,11 @@ close all
 % choose the solver P:projection, G:Grid, O:Optimziation
 choose_solver = 'PO';
 resolution_G = 100;
-resolution_O = [0.5 0.01];
+resolution_O = [0.05 0.001];
 % Visualization options 
 visualization_options = 'PO';
 %% load the case
-mpc = loadcase('case38si.m');
+mpc = loadcase('case18.m');
 mpc = ext2int(mpc);
 Nbus = size(mpc.bus,1);
 Ngen = size(mpc.gen,1);
