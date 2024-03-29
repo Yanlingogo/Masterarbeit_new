@@ -1,4 +1,4 @@
-function [pcc_grid_1,pcc_grid_2] = compensation(vert,mpc)
+function [pcc_grid_1, pcc_grid_2] = compensation_correction(vert,mpc)
     [PQ, PV, REF, NONE, BUS_I, BUS_TYPE, PD, QD, GS, BS, BUS_AREA, VM, ...
     VA, BASE_KV, ZONE, VMAX, VMIN, LAM_P, LAM_Q, MU_VMAX, MU_VMIN] = idx_bus;
     % branch idx
@@ -79,8 +79,8 @@ function [pcc_grid_1,pcc_grid_2] = compensation(vert,mpc)
     
     H_l   = IN'*(2*(R*DR+X*DX) + Z2);
     
-    mpc = runpf(mpc); %pg = 0, qg = 0
-    
+    mpc.gen(gen_nslack,PG) = [3.365;0.35];
+    mpc = runpf(mpc); %pg = 0, qg ~= 0
     
     U_0 = mpc.bus(:,8).^2;
     p_pcc0 = mpc.gen(id_gen_slack,PG)/mpc.baseMVA;
@@ -88,14 +88,14 @@ function [pcc_grid_1,pcc_grid_2] = compensation(vert,mpc)
     s_0 = [p_pcc0,q_pcc0];
     P = mpc.branch(:,14)/mpc.baseMVA;
     Q = mpc.branch(:,15)/mpc.baseMVA;
+    L = (P.^2+Q.^2)./U_0(from_bus);
     Pg_0 = mpc.gen(gen_nslack,PG)/mpc.baseMVA;
     Qg_0 = mpc.gen(gen_nslack,QG)/mpc.baseMVA;
-    L = (P.^2+Q.^2)./U_0(from_bus);
     z_0 = [U_0; P; Q; p_pcc0; q_pcc0; L];
     
     e_st   = sparse(id_slack,1,1,Nbus,1);
-    P_p = Pgmax(gen_nslack)/sum(Pgmax(gen_nslack));
-    Q_p = Qgmax(gen_nslack)/sum(Qgmax(gen_nslack));
+    P_p = -Pgmax(gen_nslack)/sum(Pgmax(gen_nslack));
+    Q_p = -Qgmax(gen_nslack)/sum(Qgmax(gen_nslack));
     H =blkdiag(P_p,Q_p); 
     
     D    = full([1, zeros(1,Nbus*2+Nbranch);
@@ -108,35 +108,48 @@ function [pcc_grid_1,pcc_grid_2] = compensation(vert,mpc)
     QQ  = sparse(diag(Q));
     Ga  = sparse(diag(L.^(-1)));
     
-    E   = [sparse(1,Nbranch);RR^2+XX^2;Ct' *RR;Ct'*XX];
-    F   = [Cf, - 2*PP*Ga, -2*QQ*Ga,sparse(Nbranch,2)];
-    G   = (PP^2+QQ^2) * Ga^2;
+    E   = [sparse(1,Nbranch);RR^2+XX^2;Ct'*RR;Ct'*XX];
+    % F   = [Cf, - 2*PP*Ga, -2*QQ*Ga,sparse(Nbranch,2)];
+    % G   = (PP^2+QQ^2) * Ga^2;
+     
+    F = [L.*Cf,  - 2*PP, - 2*QQ, sparse(Nbranch,2)];
+    G = diag(Cf*U_0);
     
     jac_z = [D E;F G]; % jacobian 
     jac_u = [zeros(Nbus,2*(Ngen-1)); 
              -Cg_ns zeros(Nbus,Ngen-1);
              zeros(Nbus,Ngen-1) -Cg_ns;
              zeros(Nbranch,2*(Ngen-1))];
-    
-    delta_s = pcc_grid - s_0;
+
+    delta_pcc = pcc_grid - s_0; 
     u_0 = [Pg_0;Qg_0];
-    z_comp = z_0 + jac_z\jac_u*(H*delta_s'-u_0);
-    U_comp = z_comp(1:Nbus,:);
-    Pij_comp = z_comp(Nbus+1:Nbus+Nbranch,:);
-    Qij_comp = z_comp(Nbus+Nbranch+1:Nbus+2*Nbranch,:);
-    L_comp = (Pij_comp.^2 + Qij_comp.^2)./U_comp(from_bus,:);
+    d_z_pred = -jac_z\jac_u*(H*delta_pcc'-u_0); % note the signs
+    Pg_pred = P_p*delta_pcc(:,1)';
+    Qg_pred = Q_p*delta_pcc(:,2)';
+    z_pred   = z_0 + d_z_pred;
+    U_pred   = z_pred(1:Nbus,:);
+    Pij_pred = z_pred(Nbus+1:Nbus+Nbranch,:);
+    Qij_pred = z_pred(Nbus+Nbranch+1:Nbus+2*Nbranch,:);
+    p_pcc    = z_pred(Nbus+2*Nbranch+1,:); 
+    q_pcc    = z_pred(Nbus+2*Nbranch+2,:);
+    L_pred   = z_pred(3*Nbus+1:end,:);
+    L_comp = (Pij_pred.^2 + Qij_pred.^2)./U_pred(from_bus,:);
     PQ_loss = ([branch_r';branch_x']*L_comp)';
-    pcc_grid_1 = pcc_grid + PQ_loss;
-    
-    % validColumns = all(U_comp >= 0.81 & U_comp <= 1.21);
-    % pcc_grid_1 = pcc_grid_1(validColumns,:);
-    
-    p_inj = Cg_ns*P_p*delta_s(:,1)'-Pd; p_inj = p_inj(2:end,:);
-    q_inj = Cg_ns*Q_p*delta_s(:,2)'-Qd; q_inj = q_inj(2:end,:);
-    U_comp = U_comp(1,:) + Mp*p_inj + Mq*q_inj + H_l*L_comp;  
-    
+    g_pred = [e_st'*U_pred-1;
+              C*U_pred - 2*(R*Pij_pred+X*Qij_pred) + Z2*L_pred;
+              C'*Pij_pred + Ct'*R*L_pred - e_st*p_pcc - Cg_ns*Pg_pred+Pd;
+              C'*Qij_pred + Ct'*X*L_pred - e_st*q_pcc - Cg_ns*Qg_pred+Qd;
+              L_pred.*U_pred(from_bus,:) - (Pij_pred.^2+Qij_pred.^2)];
+    d_z_cor = -jac_z\g_pred;
+    z_comp = z_0 + d_z_pred+d_z_cor;
+
+    U_comp = z_comp(1:Nbus,:);
+    pcc_comp = z_comp(Nbus+2*Nbranch+1:Nbus+2*Nbranch+2,:)';
+    % pcc_comp = pcc_grid+ PQ_loss+...
+    %            +d_z_cor(Nbus+2*Nbranch+1:Nbus+2*Nbranch+2,:)';
+    pcc_grid_1 = pcc_comp;
+
     validColumns = all(U_comp >= 0.81 & U_comp <= 1.21);
     pcc_grid_2 = pcc_grid_1(validColumns,:);
-
 end
 

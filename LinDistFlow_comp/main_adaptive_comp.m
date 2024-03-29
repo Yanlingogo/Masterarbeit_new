@@ -14,13 +14,13 @@ AC_points = sample_AC(mpc);
 % Jacobian at z_0
 data_basepoint = jacobian_mpc(mpc);
 % compensation
-Resoultion  = 200;
+Resoultion  = 30;
 line_points = cell(size(vertexes,1),1);
 numlines = size(vertexes,1);
 for i = 1: numlines
     power_dispatch = [dispatch{i} dispatch{mod(i,numlines)+1}];
     endpoints = [vertexes(i,:)' vertexes(mod(i,numlines)+1,:)'];
-    line_points{i} = compensation_line(data_basepoint, endpoints, power_dispatch, Resoultion);
+    line_points{i} = compensation_line_cor(data_basepoint, endpoints, power_dispatch, Resoultion);
 end
 
 %% visulization

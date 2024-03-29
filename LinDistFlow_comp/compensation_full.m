@@ -9,7 +9,7 @@ AC_points = sample_AC(mpc);
 % result of LinDistFlow model
 LDF_points = sample_LinDistFlow(mpc);
 % result of Compensation 
-[Comp_points, filtered_points] = compensation(LDF_points,mpc);
+[Comp_points, filtered_points] = compensation_correction(LDF_points,mpc);
 %% visulization 
 % LinDistFlow
 figure;

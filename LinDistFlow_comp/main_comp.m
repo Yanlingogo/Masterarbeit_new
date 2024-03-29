@@ -17,7 +17,7 @@ QC2MIN, QC2MAX, RAMP_AGC, RAMP_10, RAMP_30, RAMP_Q, APF] = idx_gen;
 % cost idx
 [PW_LINEAR, POLYNOMIAL, MODEL, STARTUP, SHUTDOWN, NCOST, COST] = idx_cost;
 
-mpc = ext2int(loadcase('case33_modified'));
+mpc = ext2int(loadcase('case33_org.m'));
 mpc = ext2int(mpc);
 
 %% parameters 

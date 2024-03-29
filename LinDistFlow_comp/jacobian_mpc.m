@@ -76,12 +76,16 @@ function [parameters] = jacobian_mpc(mpc)
     
     H_l   = IN'*(2*(R*DR+X*DX) + Z2);
     
+    mpc.gen(gen_nslack,PG) = [3.365;0.35];
     mpc = runpf(mpc); %pg = 0, qg = 0
     
     
     U_0 = mpc.bus(:,8).^2;
     p_pcc0 = mpc.gen(id_gen_slack,PG)/mpc.baseMVA;
     q_pcc0 = mpc.gen(id_gen_slack,QG)/mpc.baseMVA;
+    Pg_0 = mpc.gen(gen_nslack,PG)/mpc.baseMVA;
+    Qg_0 = mpc.gen(gen_nslack,QG)/mpc.baseMVA;
+    u_0 = [Pg_0;Qg_0];
     s_0 = [p_pcc0,q_pcc0];
     P = mpc.branch(:,14)/mpc.baseMVA;
     Q = mpc.branch(:,15)/mpc.baseMVA;
@@ -120,5 +124,12 @@ function [parameters] = jacobian_mpc(mpc)
     parameters.branch_r = branch_r;
     parameters.branch_x = branch_x;
     parameters.from_bus = from_bus;
+    parameters.id_slack = id_slack;
+    parameters.C = C;
+    parameters.Ct = Ct;
+    parameters.Pd = Pd;
+    parameters.Qd = Qd;
+    parameters.Cg_ns = Cg_ns;
+    parameters.u_0 = u_0;
 end
 
