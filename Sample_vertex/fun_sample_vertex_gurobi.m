@@ -1,4 +1,5 @@
-%%Index setting
+function [valid_vertecex] = fun_sample_vertex(mpc)
+%% Index setting
 % bus idx
 [PQ, PV, REF, NONE, BUS_I, BUS_TYPE, PD, QD, GS, BS, BUS_AREA, VM, ...
 VA, BASE_KV, ZONE, VMAX, VMIN, LAM_P, LAM_Q, MU_VMAX, MU_VMIN] = idx_bus;
@@ -13,27 +14,26 @@ QC2MIN, QC2MAX, RAMP_AGC, RAMP_10, RAMP_30, RAMP_Q, APF] = idx_gen;
 % cost idx
 [PW_LINEAR, POLYNOMIAL, MODEL, STARTUP, SHUTDOWN, NCOST, COST] = idx_cost;
 
-mpc = ext2int(loadcase('case33_modified'));
 mpc = ext2int(mpc);
-% load('Pd2_test.mat');
-% load("Qd2_test.mat");
+
 %% parameters
 tic
 
 % Time period
 T = 1;
 % network parameters
+baseMVA     = mpc.baseMVA
 Pd          = mpc.bus(:,PD)/baseMVA;
 Qd          = mpc.bus(:,QD)/baseMVA;
 
-id_gen      = mpc.gen(:,GEN_BUS);
-id_slack    =  find(mpc.bus(:,BUS_TYPE) == REF);
-id_gen_slack  = find(id_gen == id_slack);
-id_gen_nslack = find(id_gen ~= id_slack);
-Ngen_nslack = numel(id_gen_nslack);
-Nbus        = size(mpc.bus,1);
-Ngen        = numel(id_gen);
-Nbranch     = size(mpc.branch,1);
+id_gen          = mpc.gen(:,GEN_BUS);
+id_slack        =  find(mpc.bus(:,BUS_TYPE) == REF);
+id_gen_slack    = find(id_gen == id_slack);
+id_gen_nslack   = find(id_gen ~= id_slack);
+Ngen_nslack     = numel(id_gen_nslack);
+Nbus            = size(mpc.bus,1);
+Ngen            = numel(id_gen);
+Nbranch         = size(mpc.branch,1);
 
 baseMVA     = mpc.baseMVA;
 baseKV      = mpc.bus(1,BASE_KV);
@@ -179,3 +179,4 @@ toc
 %% delete the reduntant points
 valid_vertecex = removeRedun(vert, 1e-6);
 plot(valid_vertecex(:,1),valid_vertecex(:,2),'bo');
+end

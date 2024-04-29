@@ -11,7 +11,7 @@ function normals = Norm_vector(points)
         % 当前线段的方向向量
         d = points(i+1, :) - points(i, :);
         
-        % 计算外侧法向量（逆时针旋转90度）
+        % normal vector to the outer side
         n = [d(2), -d(1)];
         
         % affine hull of facet
