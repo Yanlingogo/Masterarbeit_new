@@ -18,7 +18,7 @@ deepBlue = [0, 0, 0.5]; % 深蓝色轮廓线
 lightBlue = [0.7, 0.7, 1]; % 浅蓝色填充
 lightRed = [1, 0.5, 0.5]; % 浅红色轮廓线
 veryLightRed = [1, 0.7, 0.7];% 更浅的红色填充
-lightGreen = [0.7, 1, 0.7]; % 浅绿色填充
+lightGreen = [117, 170, 107]/255; % 浅绿色填充
 Green = [0.1, 0.4, 0.1];
 
 % 第一个子图：三维凸包及其投影（包括虚线）
@@ -26,7 +26,7 @@ Green = [0.1, 0.4, 0.1];
 trisurf(K, points(:,1), points(:,2), points(:,3), 'FaceColor', lightBlue, 'EdgeColor', deepBlue);
 axis equal;
 hold on;
-fill(xyPoints(K2,1), xyPoints(K2,2), veryLightRed, 'EdgeColor', lightRed);
+fill(xyPoints(K2,1), xyPoints(K2,2), lightGreen, 'EdgeColor', Green);
 for i = 1:length(K2)
     idx = K2(i); % 凸包顶点的索引
     plot3([points(idx, 1), points(idx, 1)], [points(idx, 2), points(idx, 2)], [points(idx, 3), 0], 'k--','LineWidth', 1.5);
@@ -50,7 +50,7 @@ zlim([0, max(points(:,3))+axisPadding]);
 
 % 第二个子图：只有三维凸包，没有虚线
 fig2=figure; box on; grid on; hold all; set(fig2, 'Position', [100, 100, 650, 550])
-trisurf(K, points(:,1), points(:,2), points(:,3), 'FaceColor', veryLightRed, 'EdgeColor', lightRed);
+trisurf(K, points(:,1), points(:,2), points(:,3), 'FaceColor', lightGreen, 'EdgeColor', Green);
 axis equal;
 xlabel('X-axis', 'FontName', 'Times New Roman','FontSize', 14);
 ylabel('Y-axis', 'FontName', 'Times New Roman','FontSize', 14);

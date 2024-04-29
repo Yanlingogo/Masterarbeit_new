@@ -1,6 +1,6 @@
-load('Tv.mat');
-T = Tv.T;
-v = Tv.v;
+load('Tv_3.mat');
+T = Tv_3.T;
+v = Tv_3.v;
 [valid_intersections] = intersection(T,v);
 x = linspace(-2, 2, 400);
 y = linspace(-2.2, 2.2, 400);
@@ -11,8 +11,8 @@ fig=figure; box on; grid on; hold all; set(fig, 'Position', [100, 100, 650, 550]
 
 
 % 设置坐标轴范围和网格线间隔
-xlim([-2, 2]);
-ylim([-2.2, 2.2]);
+xlim([-1.5, 1.5]);
+ylim([-1, 1.5]);
 xticks(-2:0.5:2);
 yticks(-2:0.5:2);
 set(gca, 'FontSize', 14,'FontName', 'Times New Roman');
@@ -41,9 +41,15 @@ xline(-1.5, 'Color', deepyellow,'LineWidth',2.5,'LineStyle','--')
 
 fill(valid_intersections(:,1), valid_intersections(:,2), lightorange, 'FaceAlpha',0.7, 'EdgeColor', 'none');
 
+x_label = xlabel('$p^{\mathrm{pcc}}$/(p.u.)'); % 修正了大括号
+set(x_label, 'Interpreter', 'latex', 'FontSize', 20, 'FontName', 'Times New Roman');
+
+y_label = ylabel('$q^{\mathrm{pcc}}$/(p.u.)'); % 修正了大括号
+set(y_label, 'Interpreter', 'latex', 'FontSize', 20, 'FontName', 'Times New Roman');
+
 %% results considering uncertainty
-load("AF_uncertainty.mat")
-Points_exact = sortedPoints;
-lightbl = [66, 148, 249]/255;
-h1 = fill(Points_exact(:,1), Points_exact(:,2), lightbl);
-set(h1, 'facealpha', 0.6, 'EdgeColor', 'none');
+% load("AF_uncertainty.mat")
+% Points_exact = sortedPoints;
+% lightbl = [66, 148, 249]/255;
+% h1 = fill(Points_exact(:,1), Points_exact(:,2), lightbl);
+% set(h1, 'facealpha', 0.6, 'EdgeColor', 'none');

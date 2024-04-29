@@ -15,7 +15,7 @@ QC2MIN, QC2MAX, RAMP_AGC, RAMP_10, RAMP_30, RAMP_Q, APF] = idx_gen;
 % cost idx
 [PW_LINEAR, POLYNOMIAL, MODEL, STARTUP, SHUTDOWN, NCOST, COST] = idx_cost;
 
-mpc = ext2int(loadcase('case33_modified'));
+mpc = ext2int(loadcase('case33_org'));
 mpc = ext2int(mpc);
 % load('Pd2_test.mat');
 % load("Qd2_test.mat");
@@ -36,13 +36,6 @@ Pramp       = [1;0.1;0.1];
 % load data from case file
 Pd          = mpc.bus(:,PD)/baseMVA;
 Qd          = mpc.bus(:,QD)/baseMVA;
-% load error 
-load("Data_load.mat")
-load_error = allData; % in percentage
-load_error = load_error.*Pd(2:33)*5;
-mu_load = mean(load_error,2);
-sig_load = var(load_error, 0, 2);
-cov_load= cov(load_error');
 
 id_gen      = mpc.gen(:,GEN_BUS);
 id_slack    =  find(mpc.bus(:,BUS_TYPE) == REF);

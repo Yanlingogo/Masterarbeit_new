@@ -17,16 +17,17 @@ QC2MIN, QC2MAX, RAMP_AGC, RAMP_10, RAMP_30, RAMP_Q, APF] = idx_gen;
 [PW_LINEAR, POLYNOMIAL, MODEL, STARTUP, SHUTDOWN, NCOST, COST] = idx_cost;
 
 mpc = ext2int(loadcase('case33_modified'));
+mpc.gen(:,[4 5 9 10]) = mpc.gen(:,[4 5 9 10])*0.5;
 mpc = ext2int(mpc);
 %% parameters
 baseMVA     = mpc.baseMVA;
 baseKV      = mpc.bus(1,BASE_KV);
 Umax        = mpc.bus(:,VMAX).^2;                                            
 Umin        = mpc.bus(:,VMIN).^2;
-Pgmin       = mpc.gen(:,PMIN)/baseMVA; %Pgmin(1) = -5;  
-Qgmin       = mpc.gen(:,QMIN)/baseMVA; %Qgmin(1) = -5;
-Pgmax       = mpc.gen(:,PMAX)/baseMVA; %Pgmax(1) = 5;
-Qgmax       = mpc.gen(:,QMAX)/baseMVA; %Qgmax(1) = 5;
+Pgmin       = mpc.gen(:,PMIN)/baseMVA; Pgmin(1) = -10;  
+Qgmin       = mpc.gen(:,QMIN)/baseMVA; Qgmin(1) = -10;
+Pgmax       = mpc.gen(:,PMAX)/baseMVA; Pgmax(1) = 10;
+Qgmax       = mpc.gen(:,QMAX)/baseMVA; Qgmax(1) = 10;
 Pd          = mpc.bus(:,PD)/baseMVA;
 Qd          = mpc.bus(:,QD)/baseMVA;
 
@@ -92,10 +93,10 @@ T = [ 1 0;
 %      Qgmax(id_gen_slack);
 %      -Qgmin(id_gen_slack)];
 
-v = [2.5;
-     2;
+v = [2.2;
+     1.5;
      3;
-     3];
+     2.5];
 
 %M = 10*sum(Pd);
 M = 80;
@@ -106,7 +107,10 @@ z_0 = [0.2;0];
 tol = 1e-3;
 [T,v] = feas_cut(gamma, beta, b0, T, v, M);
 toc
-% [T,v] = redun_2(T,v);
+[T,v] = redun_2(T,v);
+Tv = struct();
+Tv.T = T;
+Tv.v = v;
 [valid_intersections] = intersection(T,v);
 x = linspace(-5, 5, 400);
 y = linspace(-5, 5, 400);
@@ -152,7 +156,8 @@ end
 
 
 fill(valid_intersections(:,1), valid_intersections(:,2), lightorange, 'FaceAlpha',0.7, 'EdgeColor', 'none');
-
+scatter(valid_intersections(:,1), valid_intersections(:,2), 35, 'filled',...
+     'MarkerFaceColor', orange,'MarkerEdgeColor', 'none');
 % 检查每个点是否满足所有不等式
 % inside = all((A * [X(:), Y(:)]' <= b)');
 
