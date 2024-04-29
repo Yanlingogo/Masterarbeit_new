@@ -38,10 +38,10 @@ vmax        = mpc.bus(:,VMAX);
 vmin        = mpc.bus(:,VMIN);
 Phimax      = mpc.branch(:,ANGMAX)/180*pi;
 Phimin      = mpc.branch(:,ANGMIN)/180*pi;
-Pgmin       = mpc.gen(:,PMIN)/baseMVA;   
-Qgmin       = mpc.gen(:,QMIN)/baseMVA; 
-Pgmax       = mpc.gen(:,PMAX)/baseMVA; 
-Qgmax       = mpc.gen(:,QMAX)/baseMVA; 
+Pgmin       = mpc.gen(:,PMIN)/baseMVA; Pgmin(id_gen_slack) = -inf;  
+Qgmin       = mpc.gen(:,QMIN)/baseMVA; Qgmin(id_gen_slack) = -inf;
+Pgmax       = mpc.gen(:,PMAX)/baseMVA; Pgmax(id_gen_slack) = inf;
+Qgmax       = mpc.gen(:,QMAX)/baseMVA; Qgmax(id_gen_slack) = inf;
 Fmax        = mpc.branch(:,RATE_A)/baseMVA;
 
 
@@ -109,8 +109,8 @@ obj_p = @(x) x(entries_pf{3}(id_gen_slack));
 obj_q = @(x) x(entries_pf{4}(id_gen_slack));
 
 
-lbg = vertcat(Phimin, -inf*ones(Nlimit,1), zeros(Npf+1,1),vmin(id_slack));
-ubg = vertcat(Phimax, zeros(Npf+Nlimit+1,1),vmin(id_slack));
+lbg = vertcat(Phimin, -inf*ones(Nlimit,1), zeros(Npf+1,1),1);
+ubg = vertcat(Phimax, zeros(Npf+Nlimit+1,1),1);
 % based on eqauation(19): but no line limits,
 %% solver options
 import casadi.*
@@ -124,7 +124,7 @@ options.ipopt.acceptable_constr_viol_tol = tol;
 options.ipopt.print_level = 5;
 % options.ipopt.grad_f = fgrad;
 options.print_time        = 0;
-options.ipopt.max_iter    = 100;
+% options.ipopt.max_iter    = 200;
 
 Nx         =  numel(x0);
 x_SX       =   SX.sym('x',Nx,1);
@@ -155,8 +155,8 @@ for c1 = -1:1
 end
 %% adaptive searching angle 
 sigma = delta;
-% Points_c = [0 0];
-Points_c = mean(Points);
+Points_c = [0 0];
+% Points_c = mean(Points);
 Points = Orderpoints(Points,Points_c);
 [Points, Dist] = distance_calculation(Points);
 

@@ -1,28 +1,27 @@
 clc
 clear
-close all
 %% solver configuration
 % choose the solver P:projection, G:Grid, O:Optimziation
 choose_solver = 'PO';
 resolution_G = 100;
-resolution_O = [0.5 0.01];
+resolution_O = [1.5 0.1];
 % Visualization options 
 visualization_options = 'PO';
 %% load the case
-mpc = loadcase('case38si.m');
+mpc = loadcase('case136ma.m');
 mpc = ext2int(mpc);
 Nbus = size(mpc.bus,1);
 Ngen = size(mpc.gen,1);
 Nbranch = size(mpc.branch,1);
 if Nbus ~= Nbranch+1
-    error('The grid is non-radial');
+    warning('The grid is non-radial');
+    choose_solver = 'O';
+    visualization_options = 'O';
 end
 if Ngen == 1
     warning('No flexibility currently, DERs will automaticlly be added')
     mpc = create_case_modification(mpc);
 end
-%% modify the case file
-% mpc = create_case_modification(mpc);
 
 %% solver
 % Projection-based Method(linear, radial)
@@ -32,7 +31,7 @@ if sum(choose_solver=='P')
     [result_projection, time_projection]= solver_projection(mpc);
 end
 % check the center of the AF
-plot(result_projection(:,1),result_projection(:,2));
+% plot(result_projection(:,1),result_projection(:,2));
 % Grid-Method
 result_grid = cell(size(resolution_G,2),10);
 time_grid = zeros(size(resolution_G,2));
@@ -47,11 +46,13 @@ if sum(choose_solver=='O')
         [result_optimization{i}, time_optimization(i)] = solver_optimization(mpc,resolution_O(i));
     end
 end
+
+
 %% Visualization
 visualization(result_projection, result_grid, result_optimization, visualization_options);
 
 %% Area/error factor calculation
-[area, error_factor] = area_error(result_projection,result_optimization);
+[area, error_factor] = area_error_2(result_projection,result_optimization);
 
 %print the result 
 time = [time_projection;time_optimization];
@@ -61,3 +62,4 @@ for i = 1:numColumns
     fprintf('method%d: area: %.2f, error factor: %.2f\n', i, area(i), error_factor(i));
 end
 
+%

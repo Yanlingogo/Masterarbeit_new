@@ -38,11 +38,11 @@ function  visualization(result_projection, result_grid, result_optimization, vis
     validHandles = [h1(1), h2(1), h3(1)];
     validHandles = validHandles(ishandle(validHandles)); % Filter out invalid handles
 
-    if ~isempty(validHandles) 
-        legend(validHandles, {'Projection', 'Grid', 'Optimization'});
-    else
-        warning('没有有效的图形句柄用于创建图例。');
-    end
+    % if ~isempty(validHandles) 
+    %     legend(validHandles, {'Projection', 'Grid', 'Optimization'});
+    % else
+    %     warning('没有有效的图形句柄用于创建图例。');
+    % end
 
 
     x_label = xlabel('$p^{\mathrm{pcc}}$/(p.u.)'); % 修正了大括号

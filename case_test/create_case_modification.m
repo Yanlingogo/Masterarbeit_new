@@ -15,19 +15,32 @@ QC2MIN, QC2MAX, RAMP_AGC, RAMP_10, RAMP_30, RAMP_Q, APF] = idx_gen;
 [PW_LINEAR, POLYNOMIAL, MODEL, STARTUP, SHUTDOWN, NCOST, COST] = idx_cost;
 
 %% add the generators
-P_sum  = min(sum(mpc.bus(:,PD)),mpc.gen(1,PMAX))/2;
-Q_sum  = min(sum(mpc.bus(:,QD)),mpc.gen(1,QMAX))/2;
+% P_sum  = min(sum(mpc.bus(:,PD)),mpc.gen(1,PMAX))/2;
+% Q_sum  = min(sum(mpc.bus(:,QD)),mpc.gen(1,QMAX))/2;
+
+P_sum  = sum(mpc.bus(:,PD));
+Q_sum  = sum(mpc.bus(:,QD));
 
 % number of the generators
 Nbus = size(mpc.bus,1);
 baseMVA = mpc.baseMVA;
 
+mpc.bus([floor(Nbus/3),floor(2*Nbus/3),Nbus-1],BUS_TYPE) = 2;
+
+
 gen_addition = [
 	floor(Nbus/3)	0	0	Q_sum	-Q_sum	1	baseMVA	1	P_sum	-P_sum	0	0	0	0	0	0	0	0	0	0	0;
 	floor(2*Nbus/3)	0	0	Q_sum	-Q_sum	1	baseMVA	1	P_sum	-P_sum	0	0	0	0	0	0	0	0	0	0	0;
-            Nbus-1	0	0	Q_sum	-Q_sum  1	baseMVA	1	P_sum	-P_sum	0	0	0	0	0	0	0	0	0	0	0;
+    Nbus-1	0	0	Q_sum	-Q_sum  1	baseMVA	1	P_sum	-P_sum	0	0	0	0	0	0	0	0	0	0	0;
     ];
 mpc.gen = [mpc.gen;gen_addition];
+
+mpc.gencost =  [
+	2	0	0	3	0	20	0;
+	2	0	0	3	0	20	0;
+	2	0	0	3	0	20	0;
+    2	0	0	3	0	20	0;
+];
 
 
 %% parameters modification
@@ -44,13 +57,17 @@ mpc.gen = [mpc.gen;gen_addition];
     id_gen_slack = find(id_gen == id_slack);
 
     % bounds modification
-    mpc.gen(id_gen_slack,PMAX) = 10;
-    mpc.gen(id_gen_slack,PMIN) = -10;
-    mpc.gen(id_gen_slack,QMAX) = 10;
-    mpc.gen(id_gen_slack,QMIN) = -10;
+    mpc.gen(id_gen_slack,PMAX) = 100;
+    mpc.gen(id_gen_slack,PMIN) = -100;
+    mpc.gen(id_gen_slack,QMAX) = 100;
+    mpc.gen(id_gen_slack,QMIN) = -100;
 
     % voltage at slack bus
     mpc.bus(id_slack,VMAX) = 1;
     mpc.bus(id_slack,VMIN) = 1;
+
+    mpc = rmfield(mpc, 'order');
+    mpc.bus(2:end,VMAX) = 1.1*ones(Nbranch,1);
+    mpc.bus(2:end,VMIN) = 0.9*ones(Nbranch,1);
 end
 
