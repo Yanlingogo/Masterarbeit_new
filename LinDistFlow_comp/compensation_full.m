@@ -9,7 +9,7 @@ AC_points = sample_AC(mpc);
 % result of LinDistFlow model
 LDF_points = sample_LinDistFlow(mpc);
 % result of Compensation 
-[Comp_points, filtered_points] = compensation_correction(LDF_points,mpc);
+[Comp_points,filtered_points] = compensation(LDF_points,mpc);
 %% visulization 
 % LinDistFlow
 figure;
@@ -26,3 +26,22 @@ set(h2, 'facealpha', 0.9, 'EdgeColor', violett,'LineWidth',2);
 % Compensation
 scatter(Comp_points(:,1),Comp_points(:,2),5,'filled');
 scatter(filtered_points(:,1),filtered_points(:,2),5,'filled');
+
+% shp = alphaShape(filtered_points(:,1),filtered_points(:,2));
+% shp.Alpha = 0.1;
+% % 绘制 Alpha Shape
+% % plot(shp)
+% 
+% 
+% % 获取边界点
+% [bndPoints, bnd] = boundaryFacets(shp);
+% bnd(end+1,:) = bnd(1,:);
+% plot(bnd(:,1), bnd(:,2), 'k-', 'LineWidth', 2) % 绘制为黑色线条
+% 
+% % bndPoints 给出了边界上的点坐标
+% disp('边界点坐标:')
+% disp(bndPoints);
+% 
+% % bnd 给出了连接边界点的顺序，可以用来绘制多边形或进一步处理
+% disp('边界连接顺序:')
+% disp(bnd);

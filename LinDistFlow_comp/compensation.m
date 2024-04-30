@@ -132,18 +132,10 @@ function [pcc_grid_1,pcc_grid_2] = compensation(vert,mpc)
     pcc_grid_2 = [];
 
     for i = 1:size(delta_s,1)
-        % Pgmax_sub = Pgmax(gen_nslack);
-        % Pgmin_sub = Pgmin(gen_nslack);
-        % Qgmax_sub = Qgmax(gen_nslack);
-        % Qgmin_sub = Qgmin(gen_nslack);
 
         p_step_iter = P_p.*delta_s(i,1);
         q_step_iter = Q_p.*delta_s(i,2);
 
-        % p_step_iter(p_step_iter > Pgmax_sub) = Pgmax_sub(p_step_iter > Pgmax_sub);
-        % p_step_iter(p_step_iter < Pgmin_sub) = Pgmin_sub(p_step_iter < Pgmin_sub);
-        % q_step_iter(q_step_iter > Qgmax_sub) = Qgmax_sub(q_step_iter > Qgmax_sub);
-        % q_step_iter(q_step_iter < Qgmin_sub) = Qgmin_sub(q_step_iter < Qgmin_sub);
 
         power_step = [p_step_iter;q_step_iter];
         
@@ -177,7 +169,6 @@ function [pcc_grid_1,pcc_grid_2] = compensation(vert,mpc)
         
         pcc_grid_1 = [pcc_grid_1;PCC];
 
-        
         if all(U_comp >= 0.81 & U_comp <= 1.21)
             pcc_grid_2 = [pcc_grid_2;PCC];
         end

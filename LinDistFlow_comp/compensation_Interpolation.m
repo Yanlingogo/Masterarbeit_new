@@ -34,6 +34,13 @@ function [compensated_points] = compensation_line_cor(base_point, endpoints, pow
         d_z_pred = - jac_z\jac_u*(power_step-u_0);
         z_pred   = z_0 + d_z_pred;
         U_pred   = z_pred(1:Nbus);
+        % if any(U_pred < 0.81)
+        %     scale_U = 0.5*min(U_pred(U_pred < 0.81))/0.81;
+        %     power_step = scale_U*power_step;
+        %     d_z_pred = - jac_z\jac_u*(power_step-u_0);
+        %     z_pred   = z_0 + d_z_pred;
+        %     U_pred   = z_pred(1:Nbus);
+        % end
         Pij_pred = z_pred(Nbus+1:Nbus+Nbranch);
         Qij_pred = z_pred(Nbus+Nbranch+1:Nbus+2*Nbranch);
         p_pcc    = z_pred(Nbus+2*Nbranch+1); 
@@ -46,15 +53,19 @@ function [compensated_points] = compensation_line_cor(base_point, endpoints, pow
                   C'*Qij_pred + Ct'*X*L_pred - e_st*q_pcc-Cg_ns*q_step_iter+Qd;
                   L_pred - (Pij_pred.^2+Qij_pred.^2)./U_pred(from_bus,:)];
         d_z_cor = -jac_z\g_pred;
-        z_comp = z_0 + d_z_pred + d_z_cor;
+        % z_comp = z_0 + d_z_pred;
+        z_comp = z_0 + d_z_pred+ d_z_cor;
         
         U_comp   = z_comp(1:Nbus);
         Pij_comp = z_comp(Nbus+1:Nbus+Nbranch);
         Qij_comp = z_comp(Nbus+Nbranch+1:Nbus+2*Nbranch);
         L_comp     = (Pij_comp.^2 + Qij_comp.^2)./U_comp(from_bus,:);
         PQ_loss    = ([branch_r';branch_x']*L_comp);
+        pcc_comp   = z_comp(Nbus+2*Nbranch+1:Nbus+2*Nbranch+2);
     
         compensated_points(i+1,:) = pcc_grid(:,i+1) + PQ_loss;
+        % compensated_points(i+1,:) = pcc_comp + PQ_loss;
+        % compensated_points(i+1,:) = z_comp(Nbus+2*Nbranch+1:Nbus+2*Nbranch+2);
     end
 end
 
