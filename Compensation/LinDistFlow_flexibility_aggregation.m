@@ -187,11 +187,12 @@ function [vert,dispatch,sol_variables,time] = LinDistFlow_flexibility_aggregatio
     dispatch = dispatch(order);
     sol_variables = sol_variables(order);
     % find the normal vectors
-    Normals = NFD_Norm_vector(vert);
+    vert_c = sum(vert,1)/size(vert,1);
+    Normals = NFD_Norm_vector(vert,vert_c);
     
     % refine the vertices
     H = 100;
-    vert_c = sum(vert,1)/size(vert,1);
+
     
     while any(H >= 1 + tol) || any( H <= 1-tol)
         H = zeros(size(Normals,1),1);
@@ -206,7 +207,7 @@ function [vert,dispatch,sol_variables,time] = LinDistFlow_flexibility_aggregatio
             obj_p_opt = xopt(Nbus+2*Nbranch+id_gen_slack);
             obj_q_opt = xopt(Nbus+2*Nbranch+Ngen+id_gen_slack);
             
-            H(i) = abs(Normals(i,:)*([obj_p_opt;obj_q_opt]));
+            H(i) = abs(Normals(i,:)*([obj_p_opt;obj_q_opt]-vert_c'));
             if  (H(i) >= 1 + tol) || (H(i) <= 1-tol) % no movement outwards
                 vert(end+1,:) = [obj_p_opt,obj_q_opt];
                 dispatch{end+1} = [xopt(Nbus+2*Nbranch+id_gen_nslack); xopt(Nbus+2*Nbranch+Ngen+id_gen_nslack)];
@@ -214,12 +215,12 @@ function [vert,dispatch,sol_variables,time] = LinDistFlow_flexibility_aggregatio
             end
         end
         % update the central point and normal vector
-        vert_c = sum(vert,1)/size(vert,1);
+        % vert_c = sum(vert,1)/size(vert,1);
         vert = NFD_unique_coor(vert, tol);
         [vert, order] = NFD_order_points(vert);
         dispatch = dispatch(order);
         sol_variables = sol_variables(order);
-        Normals_new = NFD_Norm_vector(vert);
+        Normals_new = NFD_Norm_vector(vert,vert_c);
         Normals = NFD_unique_normal(Normals, Normals_new,tol);
     end
     toc

@@ -67,7 +67,7 @@ mpc.gencost =  [
     mpc.bus(id_slack,VMAX) = 1;
     mpc.bus(id_slack,VMIN) = 1;
 
-    % mpc = rmfield(mpc, 'order');
+    mpc = rmfield(mpc, 'order');
     mpc.bus(2:end,VMAX) = 1.1*ones(Nbranch,1);
     mpc.bus(2:end,VMIN) = 0.9*ones(Nbranch,1);
 end

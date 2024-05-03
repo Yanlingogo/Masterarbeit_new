@@ -2,7 +2,8 @@ clc;
 clear;
 %% Load case
 % m.file 
-mpc = loadcase('case33_org.m');
+mpc = loadcase('case69.m');
+mpc = ext2int(mpc);
 % case modification
 Nbus = size(mpc.bus,1);
 Ngen = size(mpc.gen,1);
@@ -23,19 +24,19 @@ end
 mpc_AC = mpc;
 % more sample point, higher precision
 Sampling_resolution = 30;
-[AC_points, AC_time]= AC_flexibility_aggregation(mpc_AC,Sampling_resolution);
+% [AC_points, AC_time]= AC_flexibility_aggregation(mpc_AC,Sampling_resolution);
 %% DC model: flexibility aggregation
 
 %% LinDistFlow model: flexibility aggregation, radial grid only!
 mpc_LinDistFlow = mpc;
 % sample points for vertexes
-[LinDistFlow_points, Lin_dispatch,LinDistFlow_time] = LinDistFlow_flexibility_aggregation(mpc_LinDistFlow);
+% [LinDistFlow_points, Lin_dispatch,LinDistFlow_time] = LinDistFlow_flexibility_aggregation(mpc_LinDistFlow);
 
 %% Modification for LinDistFlow model
 % Jacobian at base point 
 data_basepoint = jacobian_mpc(mpc_LinDistFlow);
 % model: 2-fixed current, 3-linearized current
-model = 2;
+model = 3;
 [vertexes_esti, dispatch_esti, Compensation_time] = LinDistFlow_flexibility_aggregation(mpc_LinDistFlow,model,data_basepoint);
 
 %% Compensation methods

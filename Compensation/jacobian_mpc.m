@@ -80,6 +80,10 @@ function [parameters] = jacobian_mpc(mpc)
     mpopt = mpoption('verbose', 0);
     DER_save = mpc.gen(2:end,:);
     mpc.gen(2:end,:) = [];
+    if isfield(mpc, 'order') 
+        mpc = rmfield(mpc, 'order');
+    end
+    % remove the order structure in mpc to ensure runpf works
     mpc = runpf(mpc,mpopt);
     mpc.gen = [mpc.gen;DER_save];
 
